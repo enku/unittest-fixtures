@@ -1,0 +1,29 @@
+[project]
+name = "unittest-fixtures"
+description = "A small library for loading unittest fixtures"
+authors = [
+    {name = "Albert Hopkins", email = "marduk@letterboxes.org"},
+]
+dependencies = []
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "BSD-3"}
+dynamic = ["version"]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+version = { source = "scm" }
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pylint>=3.2.6",
+    "typos>=1.23.6",
+    "black>=24.8.0",
+    "coverage[toml]>=7.6.1",
+    "mypy>=1.11.1",
+]
