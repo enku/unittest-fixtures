@@ -95,10 +95,14 @@ def get_fixtures_module() -> ModuleType:
     Given the path of the fixtures module in pyproject.toml, load and return the module.
     If no path is given in pyproject.toml then the path defaults to "tests.fixtures"
     """
-    with open("pyproject.toml", "rb") as pyproject_toml:
-        project = tomllib.load(pyproject_toml)
-
-    settings = project.get("tool", {}).get("unittest-fixtures", {})
-    module_path = settings.get("fixtures-module") or "tests.fixtures"
+    module_path = "tests.fixtures"
+    try:
+        with open("pyproject.toml", "rb") as pyproject_toml:
+            project = tomllib.load(pyproject_toml)
+    except FileNotFoundError:
+        pass
+    else:
+        settings = project.get("tool", {}).get("unittest-fixtures", {})
+        module_path = settings.get("fixtures-module", module_path)
 
     return importlib.import_module(module_path)
