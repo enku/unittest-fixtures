@@ -24,3 +24,12 @@ def cd_to_tmpdir(
 
 def clear_cache(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
     uf.get_fixtures_module.cache_clear()
+
+
+def test_class(
+    _options: uf.FixtureOptions, _fixtures: uf.Fixtures
+) -> type[uf.BaseTestCase]:
+    class Test(uf.BaseTestCase):
+        pass
+
+    return Test

@@ -6,14 +6,12 @@ import unittest_fixtures as uf
 from tests import fixtures, fixtures1
 
 
+@uf.requires("test_class")
 class GetResulTests(uf.BaseTestCase):
     # pylint: disable=protected-access
-    class TestCase(uf.BaseTestCase):
-        pass
-
     def test_when_given_generator_function(self) -> None:
         return_value = object()
-        test = self.TestCase()
+        test = self.fixtures.test_class()
         test._options = {}
         test.fixtures = uf.Fixtures(name="test", foo="bar")
         self.assertEqual(len(test._cleanups), 0)
@@ -29,7 +27,7 @@ class GetResulTests(uf.BaseTestCase):
     def test_calls_func_with_fixture_and_options(self) -> None:
         return_value = object()
         func = mock.Mock(spec=uf.FixtureFunction, return_value=return_value)
-        test = self.TestCase()
+        test = self.fixtures.test_class()
         test._options = {}
         test.fixtures = uf.Fixtures(name="test", foo="bar")
 
