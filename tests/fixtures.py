@@ -33,3 +33,20 @@ def test_class(
         pass
 
     return Test
+
+
+def one(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
+    return 1
+
+
+def two(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
+    return 2
+
+
+@uf.depends(two)
+def three(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
+    return 3
+
+
+def four_fixture(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
+    return 4

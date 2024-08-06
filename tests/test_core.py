@@ -7,6 +7,33 @@ from tests import fixtures, fixtures1
 
 
 @uf.requires("test_class")
+class AddFuncsTests(uf.BaseTestCase):
+    def test_without_deps(self) -> None:
+        test = self.fixtures.test_class()
+        specs = ["one", "two"]
+
+        uf.add_funcs(test, specs)
+
+        self.assertEqual(test.fixtures, uf.Fixtures(one=1, two=2))
+
+    def test_with_deps(self) -> None:
+        test = self.fixtures.test_class()
+        specs = ["three"]  # depends on two
+
+        uf.add_funcs(test, specs)
+
+        self.assertEqual(test.fixtures, uf.Fixtures(two=2, three=3))
+
+    def test_with_fixture_suffix(self) -> None:
+        test = self.fixtures.test_class()
+        specs = [fixtures.four_fixture]
+
+        uf.add_funcs(test, specs)
+
+        self.assertEqual(test.fixtures, uf.Fixtures(four=4))
+
+
+@uf.requires("test_class")
 class GetResulTests(uf.BaseTestCase):
     # pylint: disable=protected-access
     def test_when_given_generator_function(self) -> None:

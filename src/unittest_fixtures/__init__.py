@@ -57,10 +57,6 @@ def requires(
         def setup(self: BaseTestCase) -> None:
             super(test_case, self).setUp()
 
-            self.fixtures = getattr(self, "fixtures", None) or Fixtures()
-            self._options = getattr(self, "_options", {})
-            self._options.update(getattr(test_case, "options", {}))
-
             setups = _REQUIREMENTS.get(test_case, {})
             add_funcs(self, setups.values())
 
@@ -71,6 +67,10 @@ def requires(
 
 
 def add_funcs(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
+    test.fixtures = getattr(test, "fixtures", None) or Fixtures()
+    test._options = getattr(test, "_options", {})
+    test._options.update(getattr(type(test), "options", {}))
+
     for func in [load(spec) for spec in specs]:
         name = func.__name__.removesuffix("_fixture")
         if deps := getattr(func, "_deps", []):
