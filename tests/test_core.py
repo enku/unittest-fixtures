@@ -6,6 +6,33 @@ import unittest_fixtures as uf
 from tests import fixtures, fixtures1
 
 
+@uf.requires("clear_cache", "uf_requirements", "test_class")
+class RequiresTests(uf.BaseTestCase):
+    # pylint: disable=protected-access
+    def test_with_no_requirements(self) -> None:
+        test_case = uf.requires()(self.fixtures.test_class)
+
+        self.assertEqual(uf._REQUIREMENTS, {test_case: {}})
+        self.assertTrue(hasattr(test_case, "setUp"))
+
+    def test_with_requirements(self) -> None:
+        def local_fixture(_o: uf.FixtureOptions, _f: uf.Fixtures) -> str:
+            return "test"
+
+        test_case = uf.requires("one", local_fixture)(self.fixtures.test_class)
+
+        self.assertEqual(
+            uf._REQUIREMENTS,
+            {test_case: {"one": fixtures.one, "local": local_fixture}},
+        )
+        self.assertTrue(hasattr(test_case, "setUp"))
+
+        inst = test_case()
+        inst.setUp()
+        self.assertEqual(inst.fixtures, uf.Fixtures(one=1, local="test"))
+        self.assertEqual(inst._options, {})
+
+
 @uf.requires("test_class")
 class AddFuncsTests(uf.BaseTestCase):
     def test_without_deps(self) -> None:

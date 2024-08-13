@@ -2,6 +2,7 @@
 import os
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 import unittest_fixtures as uf
 
@@ -50,3 +51,11 @@ def three(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
 
 def four_fixture(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
     return 4
+
+
+def uf_requirements(
+    _options: uf.FixtureOptions, _fixtures: uf.Fixtures
+) -> uf.FixtureContext[dict]:
+    """Patches the unittest_fixtures._REQUIREMENTS dict"""
+    with mock.patch.dict(uf._REQUIREMENTS, {}, clear=True):
+        yield uf._REQUIREMENTS
