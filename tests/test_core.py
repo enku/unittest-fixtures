@@ -23,6 +23,32 @@ class FunctionalTests(uf.BaseTestCase):
         self.assertEqual(test_obj.fixtures.test2, "test2")
         self.assertEqual(test_obj.fixtures.test3, "test2@test3")
 
+    def test_inheritance(self) -> None:
+        project_toml_path: Path = self.fixtures.tmpdir / "pyproject.toml"
+        project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
+
+        @uf.requires("test1", "test3")
+        class TestTest1(uf.BaseTestCase):
+            options = {"spacer": "@"}
+
+        @uf.requires("test3")
+        class TestTest2(TestTest1):
+            options = {"spacer": "+"}
+
+        test1_obj = TestTest1()
+        test1_obj.setUp()
+
+        test2_obj = TestTest2()
+        test2_obj.setUp()
+
+        self.assertEqual(test1_obj.fixtures.test1, "test1")
+        self.assertEqual(test1_obj.fixtures.test2, "test2")
+        self.assertEqual(test1_obj.fixtures.test3, "test2@test3")
+
+        self.assertEqual(test2_obj.fixtures.test1, "test1")
+        self.assertEqual(test2_obj.fixtures.test2, "test2")
+        self.assertEqual(test2_obj.fixtures.test3, "test2+test3")
+
 
 @uf.requires("clear_cache")
 class LoadsTests(uf.BaseTestCase):
