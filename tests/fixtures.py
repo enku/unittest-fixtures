@@ -59,3 +59,12 @@ def uf_requirements(
     """Patches the unittest_fixtures._REQUIREMENTS dict"""
     with mock.patch.dict(uf._REQUIREMENTS, {}, clear=True):
         yield uf._REQUIREMENTS
+
+
+def fixture_function(
+    _options: uf.FixtureOptions, _fixtures: uf.Fixtures
+) -> uf.FixtureFunction:
+    def func(_o: uf.FixtureOptions, _f: uf.Fixtures) -> None:
+        return
+
+    return func
