@@ -52,7 +52,7 @@ def requires(
             self._options = get_options(self, test_case)
 
             setups = _REQUIREMENTS.get(test_case, {})
-            add_funcs(self, setups.values())
+            add_fixtures(self, setups.values())
 
         setattr(test_case, "setUp", setup)
         return test_case
@@ -106,14 +106,14 @@ def load(spec: FixtureSpec) -> FixtureFunction:
     return func
 
 
-def add_funcs(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
+def add_fixtures(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     test's .fixtures attribute
     """
     for func in [load(spec) for spec in specs]:
         name = func.__name__.removesuffix("_fixture")
         if deps := getattr(func, "_deps", []):
-            add_funcs(test, deps)
+            add_fixtures(test, deps)
         if not hasattr(test.fixtures, name):
             setattr(test.fixtures, name, get_result(func, test))
 

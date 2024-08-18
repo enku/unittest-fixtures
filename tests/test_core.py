@@ -101,12 +101,12 @@ class RequiresTests(uf.BaseTestCase):
 
 
 @uf.requires("test_class")
-class AddFuncsTests(uf.BaseTestCase):
+class AddFixturesTests(uf.BaseTestCase):
     def test_without_deps(self) -> None:
         test = self.get_test()
         specs = ["one", "two"]
 
-        uf.add_funcs(test, specs)
+        uf.add_fixtures(test, specs)
 
         self.assertEqual(test.fixtures, uf.Fixtures(one=1, two=2))
 
@@ -114,7 +114,7 @@ class AddFuncsTests(uf.BaseTestCase):
         test = self.get_test()
         specs = ["three"]  # depends on two
 
-        uf.add_funcs(test, specs)
+        uf.add_fixtures(test, specs)
 
         self.assertEqual(test.fixtures, uf.Fixtures(two=2, three=3))
 
@@ -122,7 +122,7 @@ class AddFuncsTests(uf.BaseTestCase):
         test = self.get_test()
         specs = [fixtures.four_fixture]
 
-        uf.add_funcs(test, specs)
+        uf.add_fixtures(test, specs)
 
         self.assertEqual(test.fixtures, uf.Fixtures(four=4))
 
