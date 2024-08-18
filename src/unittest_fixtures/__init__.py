@@ -21,6 +21,12 @@ FixtureSpec: TypeAlias = str | FixtureFunction
 
 
 class BaseTestCase(TestCase):
+    """Fixtures TestCase
+
+    TestCases that use fixtures are not required to inherit from this base class,
+    however doing so will make the type checkers happier.
+    """
+
     _options: FixtureOptions
     options: FixtureOptions = {}
     fixtures: Fixtures
@@ -29,6 +35,8 @@ class BaseTestCase(TestCase):
 def requires(
     *requirements: FixtureSpec,
 ) -> Callable[[type[BaseTestCase]], type[BaseTestCase]]:
+    """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
+
     def decorator(test_case: type[BaseTestCase]) -> type[BaseTestCase]:
         setups = {}
         for requirement in requirements:
@@ -53,6 +61,8 @@ def requires(
 
 
 def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
+    """Decorate the fixture to require fixtures given by the FixtureSpec"""
+
     def dec(fn: FixtureFunction) -> FixtureFunction:
         fn._deps = list(deps)  # type: ignore[attr-defined]
         return fn
@@ -61,6 +71,10 @@ def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
 
 
 def get_result(func: FixtureFunction, test: BaseTestCase) -> Any:
+    """Apply the given fixture func to the given test options and return the result
+
+    If func is a generator function, apply it and add it to the test's cleanup.
+    """
     if inspect.isgeneratorfunction(func):
         return test.enterContext(
             contextmanager(func)(test._options, copy.copy(test.fixtures))
@@ -78,6 +92,12 @@ def get_options(test: BaseTestCase, test_case: type[BaseTestCase]) -> FixtureOpt
 
 
 def load(spec: FixtureSpec) -> FixtureFunction:
+    """Load and return the FixtureFunction given by FixtureSpec
+
+
+    If spec is a string, the function is imported from the project's settings, which
+    defaults to "tests.fixtures".  Otherwise the given spec is returned.
+    """
     fixtures_module = get_fixtures_module()
     func: FixtureFunction = (
         getattr(fixtures_module, spec) if isinstance(spec, str) else spec
@@ -87,6 +107,9 @@ def load(spec: FixtureSpec) -> FixtureFunction:
 
 
 def add_funcs(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
+    """Given the TestCase call the fixture functions given by specs and add them to the
+    test's .fixtures attribute
+    """
     for func in [load(spec) for spec in specs]:
         name = func.__name__.removesuffix("_fixture")
         if deps := getattr(func, "_deps", []):
