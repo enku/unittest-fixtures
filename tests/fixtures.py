@@ -29,8 +29,8 @@ def clear_cache(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
 
 def test_class(
     _options: uf.FixtureOptions, _fixtures: uf.Fixtures
-) -> type[uf.BaseTestCase]:
-    class Test(uf.BaseTestCase):
+) -> type[uf.TestCase]:
+    class Test(uf.TestCase):
         pass
 
     return Test

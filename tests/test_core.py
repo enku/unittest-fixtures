@@ -7,13 +7,13 @@ from tests import fixtures, fixtures1
 
 
 @uf.requires("cd_to_tmpdir", "clear_cache")
-class FunctionalTests(uf.BaseTestCase):
+class FunctionalTests(uf.TestCase):
     def test(self) -> None:
         project_toml_path: Path = self.fixtures.tmpdir / "pyproject.toml"
         project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
 
         @uf.requires("test1", "test3")
-        class TestTest(uf.BaseTestCase):
+        class TestTest(uf.TestCase):
             options = {"spacer": "@"}
 
         test_obj = TestTest()
@@ -28,7 +28,7 @@ class FunctionalTests(uf.BaseTestCase):
         project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
 
         @uf.requires("test1", "test3")
-        class TestTest1(uf.BaseTestCase):
+        class TestTest1(uf.TestCase):
             options = {"spacer": "@"}
 
         @uf.requires("test3")
@@ -51,7 +51,7 @@ class FunctionalTests(uf.BaseTestCase):
 
 
 @uf.requires("clear_cache")
-class LoadsTests(uf.BaseTestCase):
+class LoadsTests(uf.TestCase):
     def test_with_string(self) -> None:
         fixture_function = uf.load("one")
 
@@ -64,7 +64,7 @@ class LoadsTests(uf.BaseTestCase):
 
 
 @uf.requires("fixture_function")
-class DependsTests(uf.BaseTestCase):
+class DependsTests(uf.TestCase):
     # pylint: disable=protected-access
     def test(self) -> None:
         func: uf.FixtureFunction = self.fixtures.fixture_function
@@ -74,7 +74,7 @@ class DependsTests(uf.BaseTestCase):
 
 
 @uf.requires("clear_cache", "uf_requirements", "test_class")
-class RequiresTests(uf.BaseTestCase):
+class RequiresTests(uf.TestCase):
     # pylint: disable=protected-access
     def test_with_no_requirements(self) -> None:
         test_case = uf.requires()(self.fixtures.test_class)
@@ -101,7 +101,7 @@ class RequiresTests(uf.BaseTestCase):
 
 
 @uf.requires("test_class")
-class AddFixturesTests(uf.BaseTestCase):
+class AddFixturesTests(uf.TestCase):
     def test_without_deps(self) -> None:
         test = self.get_test()
         specs = ["one", "two"]
@@ -126,10 +126,10 @@ class AddFixturesTests(uf.BaseTestCase):
 
         self.assertEqual(test.fixtures, uf.Fixtures(four=4))
 
-    def get_test(self) -> uf.BaseTestCase:
+    def get_test(self) -> uf.TestCase:
         """Return initialized test from the fixture"""
         # pylint: disable=protected-access
-        test: uf.BaseTestCase = self.fixtures.test_class()
+        test: uf.TestCase = self.fixtures.test_class()
 
         # .fixtures and ._options are normally set up in .setUp()
         test.fixtures = uf.Fixtures()
@@ -139,7 +139,7 @@ class AddFixturesTests(uf.BaseTestCase):
 
 
 @uf.requires("test_class")
-class GetResulTests(uf.BaseTestCase):
+class GetResulTests(uf.TestCase):
     # pylint: disable=protected-access
     def test_when_given_generator_function(self) -> None:
         return_value = object()
@@ -169,7 +169,7 @@ class GetResulTests(uf.BaseTestCase):
 
 
 @uf.requires("cd_to_tmpdir", "clear_cache")
-class GetFixturesModuleTests(uf.BaseTestCase):
+class GetFixturesModuleTests(uf.TestCase):
     def test_defaults_to_tests_fixtures(self) -> None:
         fixtures_module = uf.get_fixtures_module()
 

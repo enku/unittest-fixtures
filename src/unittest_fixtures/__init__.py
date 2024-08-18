@@ -5,11 +5,11 @@ import copy
 import importlib
 import inspect
 import tomllib
+import unittest
 from contextlib import contextmanager
 from functools import cache
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator, TypeAlias
-from unittest import TestCase
 
 _REQUIREMENTS = {}
 
@@ -20,7 +20,7 @@ FixtureFunction: TypeAlias = Callable[[FixtureOptions, Fixtures], Any]
 FixtureSpec: TypeAlias = str | FixtureFunction
 
 
-class BaseTestCase(TestCase):
+class TestCase(unittest.TestCase):
     """Fixtures TestCase
 
     TestCases that use fixtures are not required to inherit from this base class,
@@ -32,12 +32,15 @@ class BaseTestCase(TestCase):
     fixtures: Fixtures
 
 
+BaseTestCase = TestCase  # for backwards compatibility
+
+
 def requires(
     *requirements: FixtureSpec,
-) -> Callable[[type[BaseTestCase]], type[BaseTestCase]]:
+) -> Callable[[type[TestCase]], type[TestCase]]:
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
 
-    def decorator(test_case: type[BaseTestCase]) -> type[BaseTestCase]:
+    def decorator(test_case: type[TestCase]) -> type[TestCase]:
         setups = {}
         for requirement in requirements:
             func = load(requirement)
@@ -45,7 +48,7 @@ def requires(
             setups[name] = func
         _REQUIREMENTS[test_case] = setups
 
-        def setup(self: BaseTestCase) -> None:
+        def setup(self: TestCase) -> None:
             super(test_case, self).setUp()
 
             self.fixtures = getattr(self, "fixtures", None) or Fixtures()
@@ -70,7 +73,7 @@ def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
     return dec
 
 
-def get_result(func: FixtureFunction, test: BaseTestCase) -> Any:
+def get_result(func: FixtureFunction, test: TestCase) -> Any:
     """Apply the given fixture func to the given test options and return the result
 
     If func is a generator function, apply it and add it to the test's cleanup.
@@ -83,8 +86,8 @@ def get_result(func: FixtureFunction, test: BaseTestCase) -> Any:
     return func(test._options, copy.copy(test.fixtures))
 
 
-def get_options(test: BaseTestCase, test_case: type[BaseTestCase]) -> FixtureOptions:
-    """Return test's new options given the BaseTestCase's options"""
+def get_options(test: TestCase, test_case: type[TestCase]) -> FixtureOptions:
+    """Return test's new options given the TestCase's options"""
     options = test._options = getattr(test, "_options", {}).copy()
     options.update(getattr(test_case, "options", {}))
 
@@ -106,7 +109,7 @@ def load(spec: FixtureSpec) -> FixtureFunction:
     return func
 
 
-def add_fixtures(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
+def add_fixtures(test: TestCase, specs: Iterable[FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     test's .fixtures attribute
     """
