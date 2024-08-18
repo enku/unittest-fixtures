@@ -47,7 +47,7 @@ class FunctionalTests(uf.BaseTestCase):
 
         self.assertEqual(test2_obj.fixtures.test1, "test1")
         self.assertEqual(test2_obj.fixtures.test2, "test2")
-        self.assertEqual(test2_obj.fixtures.test3, "test2+test3")
+        self.assertEqual(test2_obj.fixtures.test3, "test2@test3")
 
 
 @uf.requires("clear_cache")
