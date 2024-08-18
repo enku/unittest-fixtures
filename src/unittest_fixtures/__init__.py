@@ -26,23 +26,6 @@ class BaseTestCase(TestCase):
     fixtures: Fixtures
 
 
-def load(spec: FixtureSpec) -> FixtureFunction:
-    fixtures_module = get_fixtures_module()
-    func: FixtureFunction = (
-        getattr(fixtures_module, spec) if isinstance(spec, str) else spec
-    )
-
-    return func
-
-
-def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
-    def dec(fn: FixtureFunction) -> FixtureFunction:
-        fn._deps = list(deps)  # type: ignore[attr-defined]
-        return fn
-
-    return dec
-
-
 def requires(
     *requirements: FixtureSpec,
 ) -> Callable[[type[BaseTestCase]], type[BaseTestCase]]:
@@ -69,21 +52,12 @@ def requires(
     return decorator
 
 
-def get_options(test: BaseTestCase, test_case: type[BaseTestCase]) -> dict[Any, Any]:
-    """Return test's new options given the BaseTestCase's options"""
-    options = test._options = getattr(test, "_options", {}).copy()
-    options.update(getattr(test_case, "options", {}))
+def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
+    def dec(fn: FixtureFunction) -> FixtureFunction:
+        fn._deps = list(deps)  # type: ignore[attr-defined]
+        return fn
 
-    return options
-
-
-def add_funcs(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
-    for func in [load(spec) for spec in specs]:
-        name = func.__name__.removesuffix("_fixture")
-        if deps := getattr(func, "_deps", []):
-            add_funcs(test, deps)
-        if not hasattr(test.fixtures, name):
-            setattr(test.fixtures, name, get_result(func, test))
+    return dec
 
 
 def get_result(func: FixtureFunction, test: BaseTestCase) -> Any:
@@ -93,6 +67,32 @@ def get_result(func: FixtureFunction, test: BaseTestCase) -> Any:
         )
 
     return func(test._options, copy.copy(test.fixtures))
+
+
+def get_options(test: BaseTestCase, test_case: type[BaseTestCase]) -> FixtureOptions:
+    """Return test's new options given the BaseTestCase's options"""
+    options = test._options = getattr(test, "_options", {}).copy()
+    options.update(getattr(test_case, "options", {}))
+
+    return options
+
+
+def load(spec: FixtureSpec) -> FixtureFunction:
+    fixtures_module = get_fixtures_module()
+    func: FixtureFunction = (
+        getattr(fixtures_module, spec) if isinstance(spec, str) else spec
+    )
+
+    return func
+
+
+def add_funcs(test: BaseTestCase, specs: Iterable[FixtureSpec]) -> None:
+    for func in [load(spec) for spec in specs]:
+        name = func.__name__.removesuffix("_fixture")
+        if deps := getattr(func, "_deps", []):
+            add_funcs(test, deps)
+        if not hasattr(test.fixtures, name):
+            setattr(test.fixtures, name, get_result(func, test))
 
 
 @cache
