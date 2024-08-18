@@ -65,6 +65,7 @@ class LoadsTests(uf.BaseTestCase):
 
 @uf.requires("fixture_function")
 class DependsTests(uf.BaseTestCase):
+    # pylint: disable=protected-access
     def test(self) -> None:
         func: uf.FixtureFunction = self.fixtures.fixture_function
         func = uf.depends("one", "two")(func)
@@ -127,6 +128,7 @@ class AddFuncsTests(uf.BaseTestCase):
 
     def get_test(self) -> uf.BaseTestCase:
         """Return initialized test from the fixture"""
+        # pylint: disable=protected-access
         test: uf.BaseTestCase = self.fixtures.test_class()
 
         # .fixtures and ._options are normally set up in .setUp()

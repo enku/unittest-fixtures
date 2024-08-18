@@ -57,6 +57,7 @@ def uf_requirements(
     _options: uf.FixtureOptions, _fixtures: uf.Fixtures
 ) -> uf.FixtureContext[dict]:
     """Patches the unittest_fixtures._REQUIREMENTS dict"""
+    # pylint: disable=protected-access
     with mock.patch.dict(uf._REQUIREMENTS, {}, clear=True):
         yield uf._REQUIREMENTS
 
