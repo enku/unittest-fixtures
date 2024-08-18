@@ -102,7 +102,7 @@ class RequiresTests(uf.BaseTestCase):
 @uf.requires("test_class")
 class AddFuncsTests(uf.BaseTestCase):
     def test_without_deps(self) -> None:
-        test = self.fixtures.test_class()
+        test = self.get_test()
         specs = ["one", "two"]
 
         uf.add_funcs(test, specs)
@@ -110,7 +110,7 @@ class AddFuncsTests(uf.BaseTestCase):
         self.assertEqual(test.fixtures, uf.Fixtures(one=1, two=2))
 
     def test_with_deps(self) -> None:
-        test = self.fixtures.test_class()
+        test = self.get_test()
         specs = ["three"]  # depends on two
 
         uf.add_funcs(test, specs)
@@ -118,12 +118,22 @@ class AddFuncsTests(uf.BaseTestCase):
         self.assertEqual(test.fixtures, uf.Fixtures(two=2, three=3))
 
     def test_with_fixture_suffix(self) -> None:
-        test = self.fixtures.test_class()
+        test = self.get_test()
         specs = [fixtures.four_fixture]
 
         uf.add_funcs(test, specs)
 
         self.assertEqual(test.fixtures, uf.Fixtures(four=4))
+
+    def get_test(self) -> uf.BaseTestCase:
+        """Return initialized test from the fixture"""
+        test: uf.BaseTestCase = self.fixtures.test_class()
+
+        # .fixtures and ._options are normally set up in .setUp()
+        test.fixtures = uf.Fixtures()
+        test._options = {}
+
+        return test
 
 
 @uf.requires("test_class")
