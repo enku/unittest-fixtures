@@ -57,7 +57,7 @@ class LoadsTests(uf.TestCase):
 
         self.assertIs(fixture_function, fixtures.one)
 
-    def test_with_functon(self) -> None:
+    def test_with_function(self) -> None:
         fixture_function = uf.load(fixtures.one)
 
         self.assertIs(fixture_function, fixtures.one)
@@ -139,7 +139,7 @@ class AddFixturesTests(uf.TestCase):
 
 
 @uf.requires("test_class")
-class GetResulTests(uf.TestCase):
+class GetResultTests(uf.TestCase):
     # pylint: disable=protected-access
     def test_when_given_generator_function(self) -> None:
         return_value = object()
@@ -175,7 +175,7 @@ class GetFixturesModuleTests(uf.TestCase):
 
         self.assertIs(fixtures_module, fixtures)
 
-    def test_with_speficied_module(self) -> None:
+    def test_with_specified_module(self) -> None:
         project_toml_path: Path = self.fixtures.tmpdir / "pyproject.toml"
         project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
 
