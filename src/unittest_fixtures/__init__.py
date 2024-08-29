@@ -76,6 +76,26 @@ def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
     return dec
 
 
+def get_options(test: TestCase, test_case: type[TestCase]) -> FixtureOptions:
+    """Return test's new options given the TestCase's options"""
+    options = test._options = getattr(test, "_options", {}).copy()
+    options.update(getattr(test_case, "options", {}))
+
+    return options
+
+
+def add_fixtures(test: TestCase, specs: Iterable[FixtureSpec]) -> None:
+    """Given the TestCase call the fixture functions given by specs and add them to the
+    test's .fixtures attribute
+    """
+    for func in [load(spec) for spec in specs]:
+        name = func.__name__.removesuffix("_fixture")
+        if deps := getattr(func, "_deps", []):
+            add_fixtures(test, deps)
+        if not hasattr(test.fixtures, name):
+            setattr(test.fixtures, name, get_result(func, test))
+
+
 def get_result(func: FixtureFunction, test: TestCase) -> Any:
     """Apply the given fixture func to the given test options and return the result
 
@@ -87,14 +107,6 @@ def get_result(func: FixtureFunction, test: TestCase) -> Any:
         )
 
     return func(test._options, copy.copy(test.fixtures))
-
-
-def get_options(test: TestCase, test_case: type[TestCase]) -> FixtureOptions:
-    """Return test's new options given the TestCase's options"""
-    options = test._options = getattr(test, "_options", {}).copy()
-    options.update(getattr(test_case, "options", {}))
-
-    return options
 
 
 def load(spec: FixtureSpec) -> FixtureFunction:
@@ -110,18 +122,6 @@ def load(spec: FixtureSpec) -> FixtureFunction:
     )
 
     return func
-
-
-def add_fixtures(test: TestCase, specs: Iterable[FixtureSpec]) -> None:
-    """Given the TestCase call the fixture functions given by specs and add them to the
-    test's .fixtures attribute
-    """
-    for func in [load(spec) for spec in specs]:
-        name = func.__name__.removesuffix("_fixture")
-        if deps := getattr(func, "_deps", []):
-            add_fixtures(test, deps)
-        if not hasattr(test.fixtures, name):
-            setattr(test.fixtures, name, get_result(func, test))
 
 
 @cache
