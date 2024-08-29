@@ -99,6 +99,22 @@ class RequiresTests(uf.TestCase):
         self.assertEqual(inst.fixtures, uf.Fixtures(one=1, local="test"))
         self.assertEqual(inst._options, {})
 
+    def test_with_post_setup(self) -> None:
+        # pylint: disable=invalid-name,too-few-public-methods
+        TestClass: type[uf.BaseTestCase] = self.fixtures.test_class
+
+        @uf.requires()
+        class MyTest(TestClass):
+            ran_post_setup = False
+
+            def post_setup(self) -> None:
+                self.ran_post_setup = True
+
+        inst = MyTest()
+        inst.setUp()
+
+        self.assertEqual(inst.ran_post_setup, True)
+
 
 @uf.requires("test_class")
 class AddFixturesTests(uf.TestCase):

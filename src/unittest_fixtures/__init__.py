@@ -57,6 +57,9 @@ def requires(
             setups = _REQUIREMENTS.get(test_case, {})
             add_fixtures(self, setups.values())
 
+            if hasattr(self, "post_setup"):
+                self.post_setup()
+
         setattr(test_case, "setUp", setup)
         return test_case
 
