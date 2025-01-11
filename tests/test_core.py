@@ -73,7 +73,7 @@ class DependsTests(uf.TestCase):
         self.assertEqual(func._deps, ["one", "two"])
 
 
-@uf.requires("clear_cache", "uf_requirements", "test_class")
+@uf.requires("clear_cache", "uf_requirements", "test_class", "foo", "bar")
 class RequiresTests(uf.TestCase):
     # pylint: disable=protected-access
     def test_with_no_requirements(self) -> None:
@@ -114,6 +114,10 @@ class RequiresTests(uf.TestCase):
         inst.setUp()
 
         self.assertEqual(inst.ran_post_setup, True)
+
+    def test_fixtures_are_cached(self) -> None:
+        f = self.fixtures
+        self.assertIs(f.foo, f.bar.foo)
 
 
 @uf.requires("test_class")

@@ -44,6 +44,24 @@ def two(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
     return 2
 
 
+class Foo:
+    pass
+
+
+class Bar:
+    def __init__(self, foo: Foo) -> None:
+        self.foo = foo
+
+
+def foo(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> Foo:
+    return Foo()
+
+
+@uf.depends(foo)
+def bar(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> Bar:
+    return Bar(fixtures.foo)
+
+
 @uf.depends(two)
 def three(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
     return 3
