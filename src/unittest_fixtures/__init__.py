@@ -32,15 +32,15 @@ class TestCase(unittest.TestCase):
     fixtures: Fixtures
 
 
+TestCaseClass: TypeAlias = type[TestCase]
+
 BaseTestCase = TestCase  # for backwards compatibility
 
 
-def requires(
-    *requirements: FixtureSpec,
-) -> Callable[[type[TestCase]], type[TestCase]]:
+def requires(*requirements: FixtureSpec) -> Callable[[TestCaseClass], TestCaseClass]:
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
 
-    def decorator(test_case: type[TestCase]) -> type[TestCase]:
+    def decorator(test_case: TestCaseClass) -> TestCaseClass:
         setups = {}
         for requirement in requirements:
             func = load(requirement)
@@ -76,7 +76,7 @@ def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
     return dec
 
 
-def get_options(test: TestCase, test_case: type[TestCase]) -> FixtureOptions:
+def get_options(test: TestCase, test_case: TestCaseClass) -> FixtureOptions:
     """Return test's new options given the TestCase's options"""
     options = test._options = getattr(test, "_options", {}).copy()
     options.update(getattr(test_case, "options", {}))
