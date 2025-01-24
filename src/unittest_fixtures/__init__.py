@@ -11,8 +11,6 @@ from functools import cache
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator, TypeAlias
 
-_REQUIREMENTS = {}
-
 Fixtures: TypeAlias = SimpleNamespace
 FixtureOptions: TypeAlias = dict[str, Any]
 FixtureContext: TypeAlias = Iterator
@@ -35,6 +33,8 @@ class TestCase(unittest.TestCase):
 TestCaseClass: TypeAlias = type[TestCase]
 
 BaseTestCase = TestCase  # for backwards compatibility
+
+_REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureFunction]] = {}
 
 
 def requires(*requirements: FixtureSpec) -> Callable[[TestCaseClass], TestCaseClass]:
