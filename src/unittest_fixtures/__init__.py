@@ -1,12 +1,12 @@
 """Fixtures framework"""
 
 # pylint: disable=protected-access
-import copy
 import importlib
 import inspect
 import tomllib
 import unittest
 from contextlib import contextmanager
+from copy import copy
 from functools import cache
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator, TypeAlias
@@ -103,10 +103,10 @@ def get_result(func: FixtureFunction, test: TestCase) -> Any:
     """
     if inspect.isgeneratorfunction(func):
         return test.enterContext(
-            contextmanager(func)(test._options, copy.copy(test.fixtures))
+            contextmanager(func)(test._options, copy(test.fixtures))
         )
 
-    return func(test._options, copy.copy(test.fixtures))
+    return func(test._options, copy(test.fixtures))
 
 
 def load(spec: FixtureSpec) -> FixtureFunction:
