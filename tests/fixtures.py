@@ -44,22 +44,22 @@ def two(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> int:
     return 2
 
 
-class Foo:
+class Door:  # pylint: disable=too-few-public-methods
     pass
 
 
-class Bar:
-    def __init__(self, foo: Foo) -> None:
-        self.foo = foo
+class Room:  # pylint: disable=too-few-public-methods
+    def __init__(self, door_: Door) -> None:
+        self.door = door_
 
 
-def foo(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> Foo:
-    return Foo()
+def door(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> Door:
+    return Door()
 
 
-@uf.depends(foo)
-def bar(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> Bar:
-    return Bar(fixtures.foo)
+@uf.depends(door)
+def room(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> Room:
+    return Room(fixtures.door)
 
 
 @uf.depends(two)
