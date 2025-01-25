@@ -32,3 +32,6 @@ dev = [
 files = ["src/unittest_fixtures"]
 mypy_path = ["tests"]
 strict = true
+
+[tool.black]
+skip-magic-trailing-comma = true

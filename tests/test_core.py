@@ -89,8 +89,7 @@ class RequiresTests(uf.TestCase):
         test_case = uf.requires("one", local_fixture)(self.fixtures.test_class)
 
         self.assertEqual(
-            uf._REQUIREMENTS,
-            {test_case: {"one": fixtures.one, "local": local_fixture}},
+            uf._REQUIREMENTS, {test_case: {"one": fixtures.one, "local": local_fixture}}
         )
         self.assertTrue(hasattr(test_case, "setUp"))
 
