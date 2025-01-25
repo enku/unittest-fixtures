@@ -101,12 +101,12 @@ def get_result(func: FixtureFunction, test: TestCase) -> Any:
 
     If func is a generator function, apply it and add it to the test's cleanup.
     """
-    if inspect.isgeneratorfunction(func):
-        return test.enterContext(
-            contextmanager(func)(test._options, copy(test.fixtures))
-        )
+    fixtures = copy(test.fixtures)
 
-    return func(test._options, copy(test.fixtures))
+    if inspect.isgeneratorfunction(func):
+        return test.enterContext(contextmanager(func)(test._options, fixtures))
+
+    return func(test._options, fixtures)
 
 
 def load(spec: FixtureSpec) -> FixtureFunction:
