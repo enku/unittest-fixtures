@@ -88,7 +88,7 @@ def add_fixtures(test: TestCase, specs: Iterable[FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     test's .fixtures attribute
     """
-    for func in [load(spec) for spec in specs]:
+    for func in (load(spec) for spec in specs):
         name = func.__name__.removesuffix("_fixture")
         if deps := getattr(func, "_deps", []):
             add_fixtures(test, deps)
