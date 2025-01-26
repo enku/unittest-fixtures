@@ -112,7 +112,6 @@ def get_result(func: FixtureFunction, test: TestCase) -> Any:
 def load(spec: FixtureSpec) -> FixtureFunction:
     """Load and return the FixtureFunction given by FixtureSpec
 
-
     If spec is a string, the function is imported from the project's settings, which
     defaults to "tests.fixtures".  Otherwise the given spec is returned.
     """
