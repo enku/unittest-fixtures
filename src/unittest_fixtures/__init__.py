@@ -42,9 +42,7 @@ def requires(*requirements: FixtureSpec) -> Callable[[TestCaseClass], TestCaseCl
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
         _REQUIREMENTS[test_case] = {
-            func.__name__.removesuffix("_fixture"): func
-            for requirement in requirements
-            for func in [load(requirement)]
+            funcname(func): func for req in requirements for func in [load(req)]
         }
 
         def setup(self: TestCase) -> None:
@@ -139,3 +137,11 @@ def get_fixtures_module() -> ModuleType:
         module_path = settings.get("fixtures-module", module_path)
 
     return importlib.import_module(module_path)
+
+
+@cache
+def funcname(func: FixtureFunction) -> str:
+    """Return the fixture name of the given function"""
+    func_name = func.__name__
+
+    return func_name.removesuffix("_fixture")
