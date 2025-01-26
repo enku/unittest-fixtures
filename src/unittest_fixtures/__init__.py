@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from copy import copy
 from functools import cache
 from types import ModuleType, SimpleNamespace
-from typing import Any, Callable, Iterable, Iterator, TypeAlias
+from typing import Any, Callable, Iterable, Iterator, TypeAlias, cast
 
 Fixtures: TypeAlias = SimpleNamespace
 FixtureOptions: TypeAlias = dict[str, Any]
@@ -115,12 +115,11 @@ def load(spec: FixtureSpec) -> FixtureFunction:
     If spec is a string, the function is imported from the project's settings, which
     defaults to "tests.fixtures".  Otherwise the given spec is returned.
     """
-    fixtures_module = get_fixtures_module()
-    func: FixtureFunction = (
-        getattr(fixtures_module, spec) if isinstance(spec, str) else spec
-    )
+    if not isinstance(spec, str):
+        return spec
 
-    return func
+    fixtures_module = get_fixtures_module()
+    return cast(FixtureFunction, getattr(fixtures_module, spec))
 
 
 @cache
