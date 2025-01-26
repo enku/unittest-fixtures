@@ -41,12 +41,11 @@ def requires(*requirements: FixtureSpec) -> Callable[[TestCaseClass], TestCaseCl
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
-        setups = {}
-        for requirement in requirements:
-            func = load(requirement)
-            name = func.__name__.removesuffix("_fixture")
-            setups[name] = func
-        _REQUIREMENTS[test_case] = setups
+        _REQUIREMENTS[test_case] = {
+            func.__name__.removesuffix("_fixture"): func
+            for requirement in requirements
+            for func in [load(requirement)]
+        }
 
         def setup(self: TestCase) -> None:
             super(test_case, self).setUp()
