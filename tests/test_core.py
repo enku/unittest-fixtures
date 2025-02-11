@@ -203,6 +203,12 @@ class GetFixturesModuleTests(uf.TestCase):
         self.assertIs(fixtures_module, fixtures1)
 
 
+class ParametrizedTests(uf.TestCase):
+    @uf.parametrized([[1, 1], [2, 4], [3, 9], [4, 16]])
+    def test(self, base: int, result: int) -> None:
+        self.assertEqual(result, base**2)
+
+
 PYPROJECT_TOML = """\
 [tool.unittest-fixtures]
 fixtures-module = "%s"

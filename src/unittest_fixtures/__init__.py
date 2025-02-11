@@ -7,9 +7,9 @@ import tomllib
 import unittest
 from contextlib import contextmanager
 from copy import copy
-from functools import cache
+from functools import cache, wraps
 from types import ModuleType, SimpleNamespace
-from typing import Any, Callable, Iterable, Iterator, TypeAlias, cast
+from typing import Any, Callable, Iterable, Iterator, TypeAlias, TypeVar, cast
 
 Fixtures: TypeAlias = SimpleNamespace
 FixtureOptions: TypeAlias = dict[str, Any]
@@ -69,6 +69,28 @@ def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
     def dec(fn: FixtureFunction) -> FixtureFunction:
         fn._deps = list(deps)  # type: ignore[attr-defined]
         return fn
+
+    return dec
+
+
+T = TypeVar("T", bound=TestCase)
+Param: TypeAlias = list[Any]
+Params: TypeAlias = list[Param]
+TestFunc: TypeAlias = Callable[..., Any]
+
+
+def parametrized(lists_of_args: Params) -> Callable[[TestFunc], TestFunc]:
+    """Turn TestCase test method into parametrized test"""
+
+    def dec(func: TestFunc) -> TestFunc:
+        @wraps(func)
+        def wrapper(self: T, *args: Any, **kwargs: Any) -> None:
+            for list_of_args in lists_of_args:
+                name = ",".join(str(i) for i in list_of_args)
+                with self.subTest(name):
+                    func(self, *args, *list_of_args, **kwargs)
+
+        return wrapper
 
     return dec
 
