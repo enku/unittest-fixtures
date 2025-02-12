@@ -158,7 +158,7 @@ class AddFixturesTests(uf.TestCase):
 
 
 @uf.requires("test_class")
-class GetResultTests(uf.TestCase):
+class ApplyFuncTests(uf.TestCase):
     # pylint: disable=protected-access
     def test_when_given_generator_function(self) -> None:
         return_value = object()
@@ -170,7 +170,7 @@ class GetResultTests(uf.TestCase):
         def func(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> object:
             yield return_value
 
-        result = uf.get_result(func, test)
+        result = uf.apply_func(func, test)
 
         self.assertEqual(result, return_value)
         self.assertEqual(len(test._cleanups), 1)
@@ -182,7 +182,7 @@ class GetResultTests(uf.TestCase):
         test._options = {}
         test.fixtures = uf.Fixtures(name="test", foo="bar")
 
-        result = uf.get_result(func, test)
+        result = uf.apply_func(func, test)
         self.assertEqual(result, return_value)
         func.assert_called_once_with(test._options, test.fixtures)
 

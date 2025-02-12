@@ -112,10 +112,10 @@ def add_fixtures(test: TestCase, specs: Iterable[FixtureSpec]) -> None:
         if deps := getattr(func, "_deps", []):
             add_fixtures(test, deps)
         if not hasattr(test.fixtures, name):
-            setattr(test.fixtures, name, get_result(func, test))
+            setattr(test.fixtures, name, apply_func(func, test))
 
 
-def get_result(func: FixtureFunction, test: TestCase) -> Any:
+def apply_func(func: FixtureFunction, test: TestCase) -> Any:
     """Apply the given fixture func to the given test options and return the result
 
     If func is a generator function, apply it and add it to the test's cleanup.
