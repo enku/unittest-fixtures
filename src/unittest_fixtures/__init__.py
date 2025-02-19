@@ -47,7 +47,7 @@ def requires(
             funcname(func): func for req in requirements for func in [load(req)]
         }
         for name, req in named_requirements.items():
-            _REQUIREMENTS[test_case][name] = load(req)
+            _REQUIREMENTS[test_case][name] = req
 
         def setup(self: TestCase) -> None:
             super(test_case, self).setUp()
@@ -76,7 +76,7 @@ def depends(
         fn_deps: dict[str, FixtureSpec] = {funcname(dep): load(dep) for dep in deps}
 
         for name, dep in named_deps.items():
-            fn_deps[name] = load(dep)
+            fn_deps[name] = dep
 
         fn._deps = fn_deps  # type: ignore[attr-defined]
 
