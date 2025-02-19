@@ -67,11 +67,19 @@ def requires(
     return decorator
 
 
-def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
+def depends(
+    *deps: FixtureSpec, **named_deps: FixtureSpec
+) -> Callable[[FixtureFunction], FixtureFunction]:
     """Decorate the fixture to require fixtures given by the FixtureSpec"""
 
     def dec(fn: FixtureFunction) -> FixtureFunction:
-        fn._deps = {funcname(dep): load(dep) for dep in deps}  # type: ignore[attr-defined]
+        fn_deps: dict[str, FixtureSpec] = {funcname(dep): load(dep) for dep in deps}
+
+        for name, dep in named_deps.items():
+            fn_deps[name] = load(dep)
+
+        fn._deps = fn_deps  # type: ignore[attr-defined]
+
         return fn
 
     return dec

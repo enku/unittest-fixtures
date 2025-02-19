@@ -72,6 +72,13 @@ class DependsTests(uf.TestCase):
 
         self.assertEqual(func._deps, {"one": fixtures.one, "two": fixtures.two})
 
+    def test_named_deps(self) -> None:
+        func: uf.FixtureFunction = self.fixtures.fixture_function
+        func = uf.depends(foo="one", bar=fixtures.two)(func)
+
+        self.assertEqual(func._deps, {"foo": fixtures.one, "bar": fixtures.two})
+
+
 
 @uf.requires("clear_cache", "uf_requirements", "test_class", "door", "room")
 class RequiresTests(uf.TestCase):
