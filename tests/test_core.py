@@ -70,7 +70,7 @@ class DependsTests(uf.TestCase):
         func: uf.FixtureFunction = self.fixtures.fixture_function
         func = uf.depends("one", "two")(func)
 
-        self.assertEqual(func._deps, ["one", "two"])
+        self.assertEqual(func._deps, {"one": fixtures.one, "two": fixtures.two})
 
 
 @uf.requires("clear_cache", "uf_requirements", "test_class", "door", "room")
@@ -118,12 +118,24 @@ class RequiresTests(uf.TestCase):
         f = self.fixtures
         self.assertIs(f.door, f.room.door)
 
+    def test_takes_name_of_arg(self) -> None:
+        @uf.requires(foo="one", bar=fixtures.two)
+        class MyTest(uf.TestCase):
+            def post_setup(self) -> None:
+                self.assertFalse(hasattr(self.fixtures, "one"), self.fixtures)
+                self.assertFalse(hasattr(self.fixtures, "two"), self.fixtures)
+                self.assertEqual(self.fixtures.foo, 1)
+                self.assertEqual(self.fixtures.bar, 2)
+
+        inst = MyTest()
+        inst.setUp()
+
 
 @uf.requires("test_class")
 class AddFixturesTests(uf.TestCase):
     def test_without_deps(self) -> None:
         test = self.get_test()
-        specs = ["one", "two"]
+        specs = {"one": "one", "two": "two"}
 
         uf.add_fixtures(test, specs)
 
@@ -131,7 +143,7 @@ class AddFixturesTests(uf.TestCase):
 
     def test_with_deps(self) -> None:
         test = self.get_test()
-        specs = ["three"]  # depends on two
+        specs: dict[str, uf.FixtureSpec] = {"three": "three"}  # depends on two
 
         uf.add_fixtures(test, specs)
 
@@ -139,7 +151,7 @@ class AddFixturesTests(uf.TestCase):
 
     def test_with_fixture_suffix(self) -> None:
         test = self.get_test()
-        specs = [fixtures.four_fixture]
+        specs: dict[str, uf.FixtureSpec] = {"four": fixtures.four_fixture}
 
         uf.add_fixtures(test, specs)
 

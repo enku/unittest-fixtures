@@ -34,16 +34,20 @@ TestCaseClass: TypeAlias = type[TestCase]
 
 BaseTestCase = TestCase  # for backwards compatibility
 
-_REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureFunction]] = {}
+_REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
 
 
-def requires(*requirements: FixtureSpec) -> Callable[[TestCaseClass], TestCaseClass]:
+def requires(
+    *requirements: FixtureSpec, **named_requirements: FixtureSpec
+) -> Callable[[TestCaseClass], TestCaseClass]:
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
         _REQUIREMENTS[test_case] = {
             funcname(func): func for req in requirements for func in [load(req)]
         }
+        for name, req in named_requirements.items():
+            _REQUIREMENTS[test_case][name] = load(req)
 
         def setup(self: TestCase) -> None:
             super(test_case, self).setUp()
@@ -52,7 +56,7 @@ def requires(*requirements: FixtureSpec) -> Callable[[TestCaseClass], TestCaseCl
             self._options = get_options(self, test_case)
 
             setups = _REQUIREMENTS.get(test_case, {})
-            add_fixtures(self, setups.values())
+            add_fixtures(self, setups)
 
             if hasattr(self, "post_setup"):
                 self.post_setup()
@@ -67,7 +71,7 @@ def depends(*deps: FixtureSpec) -> Callable[[FixtureFunction], FixtureFunction]:
     """Decorate the fixture to require fixtures given by the FixtureSpec"""
 
     def dec(fn: FixtureFunction) -> FixtureFunction:
-        fn._deps = list(deps)  # type: ignore[attr-defined]
+        fn._deps = {funcname(dep): load(dep) for dep in deps}  # type: ignore[attr-defined]
         return fn
 
     return dec
@@ -103,13 +107,13 @@ def get_options(test: TestCase, test_case: TestCaseClass) -> FixtureOptions:
     return options
 
 
-def add_fixtures(test: TestCase, specs: Iterable[FixtureSpec]) -> None:
+def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     test's .fixtures attribute
     """
-    for func in (load(spec) for spec in specs):
-        name = func.__name__.removesuffix("_fixture")
-        if deps := getattr(func, "_deps", []):
+    for name, spec in reqs.items():
+        func = load(spec)
+        if deps := getattr(func, "_deps", {}):
             add_fixtures(test, deps)
         if not hasattr(test.fixtures, name):
             setattr(test.fixtures, name, apply_func(func, test))
@@ -162,8 +166,11 @@ def get_fixtures_module() -> ModuleType:
 
 
 @cache
-def funcname(func: FixtureFunction) -> str:
+def funcname(spec: FixtureSpec) -> str:
     """Return the fixture name of the given function"""
-    func_name = func.__name__
+    if isinstance(spec, str):
+        return spec
+
+    func_name = spec.__name__
 
     return func_name.removesuffix("_fixture")
