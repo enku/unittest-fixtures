@@ -106,7 +106,7 @@ class RequiresTests(TestCase):
         expected = Fixtures(fixture_a="a", fixture_b="b", c="ab")
         self.assertEqual(expected, tc.fixtures)
 
-    def test__setup(self) -> None:
+    def test_setup(self) -> None:
         ran = False
 
         @given(self.fixture_a)
