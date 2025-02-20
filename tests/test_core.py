@@ -1,245 +1,218 @@
-# pylint: disable=missing-docstring
-from pathlib import Path
+# pylint: disable=missing-docstring,protected-access
+import builtins
 from unittest import mock
 
 import unittest_fixtures as uf
-from tests import fixtures, fixtures1
+
+from . import fixtures as fixtures_module
 
 
-@uf.requires("cd_to_tmpdir", "clear_cache")
-class FunctionalTests(uf.TestCase):
-    def test(self) -> None:
-        project_toml_path: Path = self.fixtures.tmpdir / "pyproject.toml"
-        project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
-
-        @uf.requires("test1", "test3")
-        class TestTest(uf.TestCase):
-            options = {"spacer": "@"}
-
-        test_obj = TestTest()
-        test_obj.setUp()
-
-        self.assertEqual(test_obj.fixtures.test1, "test1")
-        self.assertEqual(test_obj.fixtures.test2, "test2")
-        self.assertEqual(test_obj.fixtures.test3, "test2@test3")
-
-    def test_inheritance(self) -> None:
-        project_toml_path: Path = self.fixtures.tmpdir / "pyproject.toml"
-        project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
-
-        @uf.requires("test1", "test3")
-        class TestTest1(uf.TestCase):
-            options = {"spacer": "@"}
-
-        @uf.requires("test3")
-        class TestTest2(TestTest1):
-            options = {"spacer": "+"}
-
-        test1_obj = TestTest1()
-        test1_obj.setUp()
-
-        test2_obj = TestTest2()
-        test2_obj.setUp()
-
-        self.assertEqual(test1_obj.fixtures.test1, "test1")
-        self.assertEqual(test1_obj.fixtures.test2, "test2")
-        self.assertEqual(test1_obj.fixtures.test3, "test2@test3")
-
-        self.assertEqual(test2_obj.fixtures.test1, "test1")
-        self.assertEqual(test2_obj.fixtures.test2, "test2")
-        self.assertEqual(test2_obj.fixtures.test3, "test2@test3")
-
-
-@uf.requires("clear_cache")
-class LoadsTests(uf.TestCase):
-    def test_with_string(self) -> None:
-        fixture_function = uf.load("one")
-
-        self.assertIs(fixture_function, fixtures.one)
-
-    def test_with_function(self) -> None:
-        fixture_function = uf.load(fixtures.one)
-
-        self.assertIs(fixture_function, fixtures.one)
-
-
-@uf.requires("fixture_function")
 class DependsTests(uf.TestCase):
-    # pylint: disable=protected-access
-    def test(self) -> None:
-        func: uf.FixtureFunction = self.fixtures.fixture_function
-        func = uf.depends("one", "two")(func)
+    def test_has_deps(self) -> None:
+        @uf.depends()
+        def fixture(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
 
-        self.assertEqual(func._deps, {"one": fixtures.one, "two": fixtures.two})
+        self.assertEqual({}, fixture._deps)  # type: ignore
+
+    def test_unnamed_deps(self) -> None:
+        @uf.depends()
+        def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
+
+        @uf.depends()
+        def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
+
+        @uf.depends(fixture_a, fixture_b)
+        def fixture_c(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
+
+        expected = {"fixture_a": fixture_a, "fixture_b": fixture_b}
+        self.assertEqual(expected, fixture_c._deps)  # type: ignore
 
     def test_named_deps(self) -> None:
-        func: uf.FixtureFunction = self.fixtures.fixture_function
-        func = uf.depends(foo="one", bar=fixtures.two)(func)
+        @uf.depends()
+        def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
 
-        self.assertEqual(func._deps, {"foo": "one", "bar": fixtures.two})
+        @uf.depends()
+        def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
 
-    def test_decorated(self) -> None:
-        @uf.depends(foo="one", bar=fixtures.two)
-        def func(_: uf.FixtureOptions, f: uf.Fixtures) -> None:
-            self.assertEqual(uf.Fixtures(foo=1, bar=2), f)
+        @uf.depends(a=fixture_a, b=fixture_b)
+        def fixture_c(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+            return
 
-        @uf.requires(func)
-        class MyTest(uf.TestCase):
+        expected = {"a": fixture_a, "b": fixture_b}
+        self.assertEqual(expected, fixture_c._deps)  # type: ignore
+
+
+class RequiresTests(uf.TestCase):
+    @staticmethod
+    @uf.depends()
+    def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+        return "a"
+
+    @staticmethod
+    @uf.depends()
+    def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+        return "b"
+
+    @staticmethod
+    @uf.depends(fixture_a, fixture_b)
+    def fixture_c(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> str:
+        return fixtures.fixture_a + fixtures.fixture_b  # type: ignore
+
+    def test_unnamed_deps(self) -> None:
+        @uf.requires(self.fixture_a)
+        class MyTestCase(uf.TestCase):
             pass
 
-        inst = MyTest()
-        inst.setUp()
+        tc = MyTestCase()
+        tc.setUp()
 
+        self.assertEqual(uf.Fixtures(fixture_a="a"), tc.fixtures)
 
-@uf.requires("clear_cache", "uf_requirements", "test_class", "door", "room")
-class RequiresTests(uf.TestCase):
-    # pylint: disable=protected-access
-    def test_with_no_requirements(self) -> None:
-        test_case = uf.requires()(self.fixtures.test_class)
+    def test_named_deps(self) -> None:
+        @uf.requires(a=self.fixture_a, b=self.fixture_b)
+        class MyTestCase(uf.TestCase):
+            pass
 
-        self.assertEqual(uf._REQUIREMENTS, {test_case: {}})
-        self.assertTrue(hasattr(test_case, "setUp"))
+        tc = MyTestCase()
+        tc.setUp()
 
-    def test_with_requirements(self) -> None:
-        def local_fixture(_o: uf.FixtureOptions, _f: uf.Fixtures) -> str:
-            return "test"
+        expected = uf.Fixtures(a="a", b="b")
+        self.assertEqual(expected, tc.fixtures)
 
-        test_case = uf.requires("one", local_fixture)(self.fixtures.test_class)
+    def test_fixture_depending_fixture(self) -> None:
+        @uf.requires(c=self.fixture_c)
+        class MyTestCase(uf.TestCase):
+            pass
 
-        self.assertEqual(
-            uf._REQUIREMENTS, {test_case: {"one": fixtures.one, "local": local_fixture}}
-        )
-        self.assertTrue(hasattr(test_case, "setUp"))
+        tc = MyTestCase()
+        tc.setUp()
 
-        inst = test_case()
-        inst.setUp()
-        self.assertEqual(inst.fixtures, uf.Fixtures(one=1, local="test"))
-        self.assertEqual(inst._options, {})
+        expected = uf.Fixtures(fixture_a="a", fixture_b="b", c="ab")
+        self.assertEqual(expected, tc.fixtures)
 
-    def test_with_post_setup(self) -> None:
-        # pylint: disable=invalid-name,too-few-public-methods
-        TestClass: type[uf.BaseTestCase] = self.fixtures.test_class
+    def test_post_setup(self) -> None:
+        ran = False
 
-        @uf.requires()
-        class MyTest(TestClass):
-            ran_post_setup = False
+        @uf.requires(self.fixture_a)
+        class MyTestCase(uf.TestCase):
+            def post_setup(self) -> None:
+                nonlocal ran
+                ran = not ran
+
+        tc = MyTestCase()
+        tc.setUp()
+
+        self.assertTrue(ran)
+
+    def test_fixture_generator(self) -> None:
+        ran = False
+
+        @uf.depends()
+        def fixture(
+            _options: uf.FixtureOptions, _fixtures: uf.Fixtures
+        ) -> uf.FixtureContext[int]:
+            nonlocal ran
+            yield 6
+            ran = True
+
+        @uf.requires(fixture)
+        class MyTestCase(uf.TestCase):
+            def test(self) -> None:
+                self.assertEqual(6, self.fixtures.fixture)
+
+        tc = MyTestCase()
+        tc.setUp()
+        tc.test()
+        tc.doCleanups()
+
+        self.assertTrue(ran)
+
+    def test_with_options(self) -> None:
+        @uf.depends()
+        def fixture(options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+            return str(options.get("echo", ""))
+
+        @uf.requires(fixture)
+        class MyTestCase(uf.TestCase):
+            options = {"echo": "Hello World!"}
 
             def post_setup(self) -> None:
-                self.ran_post_setup = True
+                self.assertEqual("Hello World!", self.fixtures.fixture)
 
-        inst = MyTest()
-        inst.setUp()
+        tc = MyTestCase()
+        tc.setUp()
 
-        self.assertEqual(inst.ran_post_setup, True)
 
-    def test_fixtures_are_cached(self) -> None:
-        f = self.fixtures
-        self.assertIs(f.door, f.room.door)
+class CommonDepsTests(uf.TestCase):
+    @staticmethod
+    @uf.depends()
+    def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+        return "a"
 
-    def test_takes_name_of_arg(self) -> None:
-        @uf.requires(foo="one", bar=fixtures.two)
-        class MyTest(uf.TestCase):
+    @staticmethod
+    @uf.depends(fixture_a)
+    def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+        return "b"
+
+    @staticmethod
+    @uf.depends(fixture_a)
+    def fixture_c(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+        return "c"
+
+    def test(self) -> None:
+        @uf.requires(c=self.fixture_c, b=self.fixture_b, z=self.fixture_c)
+        class MyTestCase(uf.TestCase):
             def post_setup(self) -> None:
-                self.assertFalse(hasattr(self.fixtures, "one"), self.fixtures)
-                self.assertFalse(hasattr(self.fixtures, "two"), self.fixtures)
-                self.assertEqual(self.fixtures.foo, 1)
-                self.assertEqual(self.fixtures.bar, 2)
+                self.assertEqual(
+                    uf.Fixtures(fixture_a="a", b="b", c="c", z="c"), self.fixtures
+                )
 
-        inst = MyTest()
-        inst.setUp()
-
-
-@uf.requires("test_class")
-class AddFixturesTests(uf.TestCase):
-    def test_without_deps(self) -> None:
-        test = self.get_test()
-        specs = {"one": "one", "two": "two"}
-
-        uf.add_fixtures(test, specs)
-
-        self.assertEqual(test.fixtures, uf.Fixtures(one=1, two=2))
-
-    def test_with_deps(self) -> None:
-        test = self.get_test()
-        specs: dict[str, uf.FixtureSpec] = {"three": "three"}  # depends on two
-
-        uf.add_fixtures(test, specs)
-
-        self.assertEqual(test.fixtures, uf.Fixtures(two=2, three=3))
-
-    def test_with_fixture_suffix(self) -> None:
-        test = self.get_test()
-        specs: dict[str, uf.FixtureSpec] = {"four": fixtures.four_fixture}
-
-        uf.add_fixtures(test, specs)
-
-        self.assertEqual(test.fixtures, uf.Fixtures(four=4))
-
-    def get_test(self) -> uf.TestCase:
-        """Return initialized test from the fixture"""
-        # pylint: disable=protected-access
-        test: uf.TestCase = self.fixtures.test_class()
-
-        # .fixtures and ._options are normally set up in .setUp()
-        test.fixtures = uf.Fixtures()
-        test._options = {}
-
-        return test
+        tc = MyTestCase()
+        tc.setUp()
 
 
-@uf.requires("test_class")
-class ApplyFuncTests(uf.TestCase):
-    # pylint: disable=protected-access
-    def test_when_given_generator_function(self) -> None:
-        return_value = object()
-        test = self.fixtures.test_class()
-        test._options = {}
-        test.fixtures = uf.Fixtures(name="test", foo="bar")
-        self.assertEqual(len(test._cleanups), 0)
+class LoadTests(uf.TestCase):
+    def test_by_string(self) -> None:
+        uf.get_fixtures_module.cache_clear()
 
-        def func(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> object:
-            yield return_value
+        @uf.depends("test_a")
+        def fixture(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> str:
+            self.assertEqual(fixtures, uf.Fixtures(test_a="test_a"))
+            return "fixture"
 
-        result = uf.apply_func(func, test)
+        @uf.requires(fixture)
+        class MyTestCase(uf.TestCase):
+            def post_setup(self) -> None:
+                self.assertEqual(
+                    self.fixtures, uf.Fixtures(test_a="test_a", fixture="fixture")
+                )
 
-        self.assertEqual(result, return_value)
-        self.assertEqual(len(test._cleanups), 1)
-
-    def test_calls_func_with_fixture_and_options(self) -> None:
-        return_value = object()
-        func = mock.Mock(spec=uf.FixtureFunction, return_value=return_value)
-        test = self.fixtures.test_class()
-        test._options = {}
-        test.fixtures = uf.Fixtures(name="test", foo="bar")
-
-        result = uf.apply_func(func, test)
-        self.assertEqual(result, return_value)
-        func.assert_called_once_with(test._options, test.fixtures)
+        tc = MyTestCase()
+        tc.setUp()
 
 
-@uf.requires("cd_to_tmpdir", "clear_cache")
 class GetFixturesModuleTests(uf.TestCase):
-    def test_defaults_to_tests_fixtures(self) -> None:
-        fixtures_module = uf.get_fixtures_module()
+    def test_with_missing_pyproject_toml(self) -> None:
+        with mock.patch.object(builtins, "open") as mock_open:
+            mock_open.side_effect = FileNotFoundError
+            module = uf.get_fixtures_module()
 
-        self.assertIs(fixtures_module, fixtures)
-
-    def test_with_specified_module(self) -> None:
-        project_toml_path: Path = self.fixtures.tmpdir / "pyproject.toml"
-        project_toml_path.write_text(PYPROJECT_TOML % "tests.fixtures1")
-
-        fixtures_module = uf.get_fixtures_module()
-
-        self.assertIs(fixtures_module, fixtures1)
+        assert module is fixtures_module
 
 
-class ParametrizedTests(uf.TestCase):
-    @uf.parametrized([[1, 1], [2, 4], [3, 9], [4, 16]])
-    def test(self, base: int, result: int) -> None:
-        self.assertEqual(result, base**2)
+class ParametrizeTests(uf.TestCase):
+    values = {1, 2}
 
-
-PYPROJECT_TOML = """\
-[tool.unittest-fixtures]
-fixtures-module = "%s"
-"""
+    @uf.parametrized([[1, values], [2, values], [None, values]])
+    def test(self, value: int | None, values: set[int]) -> None:
+        if value is not None:
+            self.assertIn(value, values)
+            values.discard(value)
+            return
+        self.assertEqual(set(), values)
