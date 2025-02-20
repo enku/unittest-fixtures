@@ -7,7 +7,7 @@ from unittest_fixtures import (
     FixtureContext,
     Fixtures,
     TestCase,
-    depends,
+    fixture,
     get_fixtures_module,
     given,
     parametrized,
@@ -19,22 +19,22 @@ from . import fixtures as fixtures_module
 
 class DependsTests(TestCase):
     def test_has_deps(self) -> None:
-        @depends()
-        def fixture(_options: None, _fixtures: Fixtures) -> None:
+        @fixture()
+        def f(_options: None, _fixtures: Fixtures) -> None:
             return
 
-        self.assertEqual({}, _DEPS[fixture])
+        self.assertEqual({}, _DEPS[f])
 
     def test_unnamed_deps(self) -> None:
-        @depends()
+        @fixture()
         def fixture_a(_options: None, _fixtures: Fixtures) -> None:
             return
 
-        @depends()
+        @fixture()
         def fixture_b(_options: None, _fixtures: Fixtures) -> None:
             return
 
-        @depends(fixture_a, fixture_b)
+        @fixture(fixture_a, fixture_b)
         def fixture_c(_options: None, _fixtures: Fixtures) -> None:
             return
 
@@ -42,15 +42,15 @@ class DependsTests(TestCase):
         self.assertEqual(expected, _DEPS[fixture_c])
 
     def test_named_deps(self) -> None:
-        @depends()
+        @fixture()
         def fixture_a(_options: None, _fixtures: Fixtures) -> None:
             return
 
-        @depends()
+        @fixture()
         def fixture_b(_options: None, _fixtures: Fixtures) -> None:
             return
 
-        @depends(a=fixture_a, b=fixture_b)
+        @fixture(a=fixture_a, b=fixture_b)
         def fixture_c(_options: None, _fixtures: Fixtures) -> None:
             return
 
@@ -60,17 +60,17 @@ class DependsTests(TestCase):
 
 class RequiresTests(TestCase):
     @staticmethod
-    @depends()
+    @fixture()
     def fixture_a(_options: None, _fixtures: Fixtures) -> str:
         return "a"
 
     @staticmethod
-    @depends()
+    @fixture()
     def fixture_b(_options: None, _fixtures: Fixtures) -> str:
         return "b"
 
     @staticmethod
-    @depends(fixture_a, fixture_b)
+    @fixture(fixture_a, fixture_b)
     def fixture_c(_options: None, fixtures: Fixtures) -> str:
         return fixtures.fixture_a + fixtures.fixture_b  # type: ignore
 
@@ -123,16 +123,16 @@ class RequiresTests(TestCase):
     def test_fixture_generator(self) -> None:
         ran = False
 
-        @depends()
-        def fixture(_options: None, _fixtures: Fixtures) -> FixtureContext[int]:
+        @fixture()
+        def f(_options: None, _fixtures: Fixtures) -> FixtureContext[int]:
             nonlocal ran
             yield 6
             ran = True
 
-        @given(fixture)
+        @given(f)
         class MyTestCase(TestCase):
             def test(self) -> None:
-                self.assertEqual(6, self.fixtures.fixture)
+                self.assertEqual(6, self.fixtures.f)
 
         tc = MyTestCase()
         tc.setUp()
@@ -142,9 +142,9 @@ class RequiresTests(TestCase):
         self.assertTrue(ran)
 
     def test_with_options(self) -> None:
-        @depends()
-        def echo(opts: str | None, _fixtures: Fixtures) -> str:
-            return opts or ""
+        @fixture()
+        def echo(options: str | None, _fixtures: Fixtures) -> str:
+            return options or ""
 
         @where(echo="Hello World!")
         @given(echo)
@@ -157,9 +157,9 @@ class RequiresTests(TestCase):
         tc.setUp()
 
     def test_inherits_parents_options(self) -> None:
-        @depends()
-        def echo(opts: str | None, _fixtures: Fixtures) -> str:
-            return opts or ""
+        @fixture()
+        def echo(options: str | None, _fixtures: Fixtures) -> str:
+            return options or ""
 
         @given(echo)
         @where(echo="Hello World!")
@@ -175,9 +175,9 @@ class RequiresTests(TestCase):
         tc.setUp()
 
     def test_overrides_parents_options(self) -> None:
-        @depends()
-        def echo(opts: str | None, _fixtures: Fixtures) -> str:
-            return opts or ""
+        @fixture()
+        def echo(options: str | None, _fixtures: Fixtures) -> str:
+            return options or ""
 
         @given(echo)
         @where(echo="Hello World!")
@@ -196,17 +196,17 @@ class RequiresTests(TestCase):
 
 class CommonDepsTests(TestCase):
     @staticmethod
-    @depends()
+    @fixture()
     def fixture_a(_options: None, _fixtures: Fixtures) -> str:
         return "a"
 
     @staticmethod
-    @depends(fixture_a)
+    @fixture(fixture_a)
     def fixture_b(_options: None, _fixtures: Fixtures) -> str:
         return "b"
 
     @staticmethod
-    @depends(fixture_a)
+    @fixture(fixture_a)
     def fixture_c(_options: None, _fixtures: Fixtures) -> str:
         return "c"
 
@@ -226,17 +226,15 @@ class LoadTests(TestCase):
     def test_by_string(self) -> None:
         get_fixtures_module.cache_clear()
 
-        @depends("test_a")
-        def fixture(_options: None, fixtures: Fixtures) -> str:
+        @fixture("test_a")
+        def f(_options: None, fixtures: Fixtures) -> str:
             self.assertEqual(fixtures, Fixtures(test_a="test_a"))
             return "fixture"
 
-        @given(fixture)
+        @given(f)
         class MyTestCase(TestCase):
             def setUp(self) -> None:
-                self.assertEqual(
-                    self.fixtures, Fixtures(test_a="test_a", fixture="fixture")
-                )
+                self.assertEqual(self.fixtures, Fixtures(test_a="test_a", f="fixture"))
 
         tc = MyTestCase()
         tc.setUp()

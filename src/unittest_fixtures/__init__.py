@@ -70,7 +70,7 @@ requires = given  # backwards compat
 def depends(
     *deps: FixtureSpec, **named_deps: FixtureSpec
 ) -> Callable[[FixtureFunction], FixtureFunction]:
-    """Decorate the fixture to require fixtures given by the FixtureSpec"""
+    """Declare fixture requiring fixtures given by the FixtureSpec"""
 
     def dec(fn: FixtureFunction) -> FixtureFunction:
         fn_deps: dict[str, FixtureSpec] = {funcname(dep): dep for dep in deps}
@@ -83,6 +83,9 @@ def depends(
         return fn
 
     return dec
+
+
+fixture = depends  # backwards compat
 
 
 def where(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
