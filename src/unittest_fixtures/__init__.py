@@ -44,7 +44,7 @@ def requires(
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
         _REQUIREMENTS[test_case] = {
-            funcname(func): func for req in requirements for func in [load(req)]
+            funcname(func): func for req in requirements for func in [req]
         }
         for name, req in named_requirements.items():
             _REQUIREMENTS[test_case][name] = req
@@ -73,7 +73,7 @@ def depends(
     """Decorate the fixture to require fixtures given by the FixtureSpec"""
 
     def dec(fn: FixtureFunction) -> FixtureFunction:
-        fn_deps: dict[str, FixtureSpec] = {funcname(dep): load(dep) for dep in deps}
+        fn_deps: dict[str, FixtureSpec] = {funcname(dep): dep for dep in deps}
 
         for name, dep in named_deps.items():
             fn_deps[name] = dep
