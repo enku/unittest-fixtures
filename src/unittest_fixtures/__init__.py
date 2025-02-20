@@ -24,7 +24,7 @@ class TestCase(unittest.TestCase):
     however doing so will make the type checkers happier.
     """
 
-    fixtures: Fixtures
+    given: Fixtures
 
 
 TestCaseClass: TypeAlias = type[TestCase]
@@ -51,7 +51,8 @@ def given(
         original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
         def setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
-            self.fixtures = Fixtures()
+            self.given = Fixtures()
+            self.fixtures = self.given  # type: ignore  # backwards compat
 
             setups = _REQUIREMENTS.get(test_case, {})
             add_fixtures(self, setups)
@@ -132,8 +133,8 @@ def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
         func = load(spec)
         if deps := _DEPS.get(func, {}):
             add_fixtures(test, deps)
-        if not hasattr(test.fixtures, name):
-            setattr(test.fixtures, name, apply_func(func, name, test))
+        if not hasattr(test.given, name):
+            setattr(test.given, name, apply_func(func, name, test))
 
 
 def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
@@ -141,7 +142,7 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
 
     If func is a generator function, apply it and add it to the test's cleanup.
     """
-    fixtures = copy(test.fixtures)
+    fixtures = copy(test.given)
     cls = type(test)
     test_opts = {
         k: v for cls in (*cls.mro(), cls) for k, v in _OPTIONS.get(cls, {}).items()

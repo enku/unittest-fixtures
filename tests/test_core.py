@@ -82,7 +82,7 @@ class RequiresTests(TestCase):
         tc = MyTestCase()
         tc.setUp()
 
-        self.assertEqual(Fixtures(fixture_a="a"), tc.fixtures)
+        self.assertEqual(Fixtures(fixture_a="a"), tc.given)
 
     def test_named_deps(self) -> None:
         @given(a=self.fixture_a, b=self.fixture_b)
@@ -93,7 +93,7 @@ class RequiresTests(TestCase):
         tc.setUp()
 
         expected = Fixtures(a="a", b="b")
-        self.assertEqual(expected, tc.fixtures)
+        self.assertEqual(expected, tc.given)
 
     def test_fixture_depending_fixture(self) -> None:
         @given(c=self.fixture_c)
@@ -104,7 +104,7 @@ class RequiresTests(TestCase):
         tc.setUp()
 
         expected = Fixtures(fixture_a="a", fixture_b="b", c="ab")
-        self.assertEqual(expected, tc.fixtures)
+        self.assertEqual(expected, tc.given)
 
     def test_setup(self) -> None:
         ran = False
@@ -132,7 +132,7 @@ class RequiresTests(TestCase):
         @given(f)
         class MyTestCase(TestCase):
             def test(self) -> None:
-                self.assertEqual(6, self.fixtures.f)
+                self.assertEqual(6, self.given.f)
 
         tc = MyTestCase()
         tc.setUp()
@@ -151,7 +151,7 @@ class RequiresTests(TestCase):
         class MyTestCase(TestCase):
 
             def setUp(self) -> None:
-                self.assertEqual("Hello World!", self.fixtures.echo)
+                self.assertEqual("Hello World!", self.given.echo)
 
         tc = MyTestCase()
         tc.setUp()
@@ -169,7 +169,7 @@ class RequiresTests(TestCase):
         @given(echo)
         class MyTestCase(MyBaseTestCase):
             def setUp(self) -> None:
-                self.assertEqual("Hello World!", self.fixtures.echo)
+                self.assertEqual("Hello World!", self.given.echo)
 
         tc = MyTestCase()
         tc.setUp()
@@ -188,7 +188,7 @@ class RequiresTests(TestCase):
         @where(echo="override!")
         class MyTestCase(MyBaseTestCase):
             def setUp(self) -> None:
-                self.assertEqual("override!", self.fixtures.echo)
+                self.assertEqual("override!", self.given.echo)
 
         tc = MyTestCase()
         tc.setUp()
@@ -215,7 +215,7 @@ class CommonDepsTests(TestCase):
         class MyTestCase(TestCase):
             def setUp(self) -> None:
                 self.assertEqual(
-                    Fixtures(fixture_a="a", b="b", c="c", z="c"), self.fixtures
+                    Fixtures(fixture_a="a", b="b", c="c", z="c"), self.given
                 )
 
         tc = MyTestCase()
@@ -234,7 +234,7 @@ class LoadTests(TestCase):
         @given(f)
         class MyTestCase(TestCase):
             def setUp(self) -> None:
-                self.assertEqual(self.fixtures, Fixtures(test_a="test_a", f="fixture"))
+                self.assertEqual(self.given, Fixtures(test_a="test_a", f="fixture"))
 
         tc = MyTestCase()
         tc.setUp()
