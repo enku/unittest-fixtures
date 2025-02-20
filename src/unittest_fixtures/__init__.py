@@ -36,7 +36,7 @@ _DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
 _OPTIONS: dict[TestCaseClass, dict[str, Any]] = {}
 
 
-def requires(
+def given(
     *requirements: FixtureSpec, **named_requirements: FixtureSpec
 ) -> Callable[[TestCaseClass], TestCaseClass]:
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
@@ -62,6 +62,9 @@ def requires(
         return test_case
 
     return decorator
+
+
+requires = given  # backwards compat
 
 
 def depends(
