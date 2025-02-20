@@ -1,15 +1,14 @@
 """Fixtures framework"""
 
-# pylint: disable=protected-access
 import importlib
 import inspect
 import tomllib
-import unittest
 from contextlib import contextmanager
 from copy import copy
-from functools import cache, wraps
+from functools import cache, partial, wraps
 from types import ModuleType, SimpleNamespace
-from typing import Any, Callable, Iterable, Iterator, TypeAlias, TypeVar, cast
+from typing import Any, Callable, Iterable, Iterator, Protocol, TypeAlias, TypeVar, cast
+from unittest import TestCase
 
 Fixtures: TypeAlias = SimpleNamespace
 FixtureContext: TypeAlias = Iterator
@@ -17,20 +16,7 @@ FixtureFunction: TypeAlias = Callable[[Any, Fixtures], Any]
 FixtureSpec: TypeAlias = str | FixtureFunction
 
 
-class TestCase(unittest.TestCase):
-    """Fixtures TestCase
-
-    TestCases that use fixtures are not required to inherit from this base class,
-    however doing so will make the type checkers happier.
-    """
-
-    given: Fixtures
-
-
 TestCaseClass: TypeAlias = type[TestCase]
-
-BaseTestCase = TestCase  # for backwards compatibility
-
 _REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
 _DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
 _OPTIONS: dict[TestCaseClass, dict[str, Any]] = {}
@@ -48,14 +34,18 @@ def given(
         for name, req in named_requirements.items():
             _REQUIREMENTS[test_case][name] = req
 
+        fixtures = Fixtures()
+
+        for name, method in test_case.__dict__.items():
+            if callable(method) and (name == "test" or name.startswith("test")):
+                setattr(test_case, name, make_wrapper(method, fixtures))
+
         original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
         def setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
-            self.given = Fixtures()
-            self.fixtures = self.given  # type: ignore  # backwards compat
 
             setups = _REQUIREMENTS.get(test_case, {})
-            add_fixtures(self, setups)
+            add_fixtures(fixtures, self, setups)
 
             original_setup(self, *args, **kwargs)
 
@@ -65,10 +55,25 @@ def given(
     return decorator
 
 
-requires = given  # backwards compat
+class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-methods
+    """Test methods that take a fixtures kwarg"""
+
+    def __call__(self, _self: TestCase, *, fixtures: Fixtures) -> Any: ...
 
 
-def depends(
+def make_wrapper(
+    method: TestMethodWithFixturesKwarg, fixtures: Fixtures
+) -> Callable[[TestCase], Any]:
+    """Wrap the given method so that the fixtures kwarg is passed"""
+
+    @wraps(method)
+    def wrapper(self: TestCase) -> Any:
+        return method(self, fixtures=fixtures)
+
+    return wrapper
+
+
+def fixture(
     *deps: FixtureSpec, **named_deps: FixtureSpec
 ) -> Callable[[FixtureFunction], FixtureFunction]:
     """Declare fixture requiring fixtures given by the FixtureSpec"""
@@ -86,9 +91,6 @@ def depends(
     return dec
 
 
-fixture = depends  # backwards compat
-
-
 def where(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
     """Provide the given options to the given fixtures"""
 
@@ -98,9 +100,6 @@ def where(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
         return test_case
 
     return decorator
-
-
-options = where  # backwards compat
 
 
 T = TypeVar("T", bound=TestCase)
@@ -125,24 +124,28 @@ def parametrized(lists_of_args: Params) -> Callable[[TestFunc], TestFunc]:
     return dec
 
 
-def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
+def add_fixtures(
+    fixtures: Fixtures, test: TestCase, reqs: dict[str, FixtureSpec]
+) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     test's .fixtures attribute
     """
     for name, spec in reqs.items():
         func = load(spec)
         if deps := _DEPS.get(func, {}):
-            add_fixtures(test, deps)
-        if not hasattr(test.given, name):
-            setattr(test.given, name, apply_func(func, name, test))
+            add_fixtures(fixtures, test, deps)
+        if not hasattr(fixtures, name):
+            setattr(fixtures, name, apply_func(func, name, test, fixtures))
 
 
-def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
+def apply_func(
+    func: FixtureFunction, name: str, test: TestCase, fixtures: Fixtures
+) -> Any:
     """Apply the given fixture func to the given test options and return the result
 
     If func is a generator function, apply it and add it to the test's cleanup.
     """
-    fixtures = copy(test.given)
+    fixtures = copy(fixtures)
     cls = type(test)
     test_opts = {
         k: v for cls in (*cls.mro(), cls) for k, v in _OPTIONS.get(cls, {}).items()

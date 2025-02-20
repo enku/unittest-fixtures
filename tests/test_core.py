@@ -1,12 +1,12 @@
 # pylint: disable=missing-docstring,protected-access
 import builtins
-from unittest import mock
+import unittest.result
+from unittest import TestCase, mock
 
 from unittest_fixtures import (
     _DEPS,
     FixtureContext,
     Fixtures,
-    TestCase,
     fixture,
     get_fixtures_module,
     given,
@@ -17,7 +17,7 @@ from unittest_fixtures import (
 from . import fixtures as fixtures_module
 
 
-class DependsTests(TestCase):
+class FixtureTests(TestCase):
     def test_has_deps(self) -> None:
         @fixture()
         def f(_options: None, _fixtures: Fixtures) -> None:
@@ -77,47 +77,45 @@ class RequiresTests(TestCase):
     def test_unnamed_deps(self) -> None:
         @given(self.fixture_a)
         class MyTestCase(TestCase):
-            pass
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(Fixtures(fixture_a="a"), fixtures)
 
-        tc = MyTestCase()
-        tc.setUp()
-
-        self.assertEqual(Fixtures(fixture_a="a"), tc.given)
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
     def test_named_deps(self) -> None:
         @given(a=self.fixture_a, b=self.fixture_b)
         class MyTestCase(TestCase):
-            pass
+            def test(self, fixtures: Fixtures) -> None:
+                expected = Fixtures(a="a", b="b")
+                self.assertEqual(expected, fixtures)
 
-        tc = MyTestCase()
-        tc.setUp()
-
-        expected = Fixtures(a="a", b="b")
-        self.assertEqual(expected, tc.given)
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
     def test_fixture_depending_fixture(self) -> None:
         @given(c=self.fixture_c)
         class MyTestCase(TestCase):
-            pass
+            def test(self, fixtures: Fixtures) -> None:
+                expected = Fixtures(fixture_a="a", fixture_b="b", c="ab")
+                self.assertEqual(expected, fixtures)
 
-        tc = MyTestCase()
-        tc.setUp()
-
-        expected = Fixtures(fixture_a="a", fixture_b="b", c="ab")
-        self.assertEqual(expected, tc.given)
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
     def test_setup(self) -> None:
         ran = False
 
         @given(self.fixture_a)
         class MyTestCase(TestCase):
-            def setUp(self) -> None:
+            def test(self, fixtures: Fixtures) -> None:
+                assert hasattr(fixtures, "fixture_a")
                 nonlocal ran
                 ran = not ran
 
-        tc = MyTestCase()
-        tc.setUp()
+        result = MyTestCase("test").run()
 
+        assert_test_result(self, result)
         self.assertTrue(ran)
 
     def test_fixture_generator(self) -> None:
@@ -131,13 +129,11 @@ class RequiresTests(TestCase):
 
         @given(f)
         class MyTestCase(TestCase):
-            def test(self) -> None:
-                self.assertEqual(6, self.given.f)
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(6, fixtures.f)
 
-        tc = MyTestCase()
-        tc.setUp()
-        tc.test()
-        tc.doCleanups()
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
         self.assertTrue(ran)
 
@@ -149,12 +145,11 @@ class RequiresTests(TestCase):
         @where(echo="Hello World!")
         @given(echo)
         class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual("Hello World!", fixtures.echo)
 
-            def setUp(self) -> None:
-                self.assertEqual("Hello World!", self.given.echo)
-
-        tc = MyTestCase()
-        tc.setUp()
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
     def test_inherits_parents_options(self) -> None:
         @fixture()
@@ -168,11 +163,11 @@ class RequiresTests(TestCase):
 
         @given(echo)
         class MyTestCase(MyBaseTestCase):
-            def setUp(self) -> None:
-                self.assertEqual("Hello World!", self.given.echo)
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual("Hello World!", fixtures.echo)
 
-        tc = MyTestCase()
-        tc.setUp()
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
     def test_overrides_parents_options(self) -> None:
         @fixture()
@@ -187,11 +182,11 @@ class RequiresTests(TestCase):
         @given(echo)
         @where(echo="override!")
         class MyTestCase(MyBaseTestCase):
-            def setUp(self) -> None:
-                self.assertEqual("override!", self.given.echo)
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual("override!", fixtures.echo)
 
-        tc = MyTestCase()
-        tc.setUp()
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
 
 class CommonDepsTests(TestCase):
@@ -213,13 +208,11 @@ class CommonDepsTests(TestCase):
     def test(self) -> None:
         @given(c=self.fixture_c, b=self.fixture_b, z=self.fixture_c)
         class MyTestCase(TestCase):
-            def setUp(self) -> None:
-                self.assertEqual(
-                    Fixtures(fixture_a="a", b="b", c="c", z="c"), self.given
-                )
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(Fixtures(fixture_a="a", b="b", c="c", z="c"), fixtures)
 
-        tc = MyTestCase()
-        tc.setUp()
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
 
 class LoadTests(TestCase):
@@ -233,11 +226,11 @@ class LoadTests(TestCase):
 
         @given(f)
         class MyTestCase(TestCase):
-            def setUp(self) -> None:
-                self.assertEqual(self.given, Fixtures(test_a="test_a", f="fixture"))
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures, Fixtures(test_a="test_a", f="fixture"))
 
-        tc = MyTestCase()
-        tc.setUp()
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
 
 
 class GetFixturesModuleTests(TestCase):
@@ -259,3 +252,21 @@ class ParametrizeTests(TestCase):
             values.discard(value)
             return
         self.assertEqual(set(), values)
+
+
+def assert_test_result(
+    self: TestCase, result: unittest.result.TestResult | None
+) -> None:
+    self.assertIsNotNone(result, "No result given")
+    assert result
+
+    if result.failures:
+        msg = ""
+        for failure in result.failures:
+            msg = f"{msg}\n{'\n'.join(str(f) for f in failure)}"
+            self.fail(msg)
+    if result.errors:
+        msg = ""
+        for error in result.errors:
+            msg = f"{msg}\n{'\n'.join(str(f) for f in error)}"
+            self.fail(msg)
