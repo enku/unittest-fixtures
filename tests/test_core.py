@@ -10,8 +10,8 @@ from unittest_fixtures import (
     depends,
     get_fixtures_module,
     given,
-    options,
     parametrized,
+    where,
 )
 
 from . import fixtures as fixtures_module
@@ -146,7 +146,7 @@ class RequiresTests(TestCase):
         def echo(opts: str | None, _fixtures: Fixtures) -> str:
             return opts or ""
 
-        @options(echo="Hello World!")
+        @where(echo="Hello World!")
         @given(echo)
         class MyTestCase(TestCase):
 
@@ -161,8 +161,8 @@ class RequiresTests(TestCase):
         def echo(opts: str | None, _fixtures: Fixtures) -> str:
             return opts or ""
 
-        @options(echo="Hello World!")
         @given(echo)
+        @where(echo="Hello World!")
         class MyBaseTestCase(TestCase):
             pass
 
@@ -180,12 +180,12 @@ class RequiresTests(TestCase):
             return opts or ""
 
         @given(echo)
-        @options(echo="Hello World!")
+        @where(echo="Hello World!")
         class MyBaseTestCase(TestCase):
             pass
 
         @given(echo)
-        @options(echo="override!")
+        @where(echo="override!")
         class MyTestCase(MyBaseTestCase):
             def setUp(self) -> None:
                 self.assertEqual("override!", self.fixtures.echo)

@@ -85,7 +85,7 @@ def depends(
     return dec
 
 
-def options(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
+def where(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
     """Provide the given options to the given fixtures"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
@@ -94,6 +94,9 @@ def options(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
         return test_case
 
     return decorator
+
+
+options = where  # backwards compat
 
 
 T = TypeVar("T", bound=TestCase)
