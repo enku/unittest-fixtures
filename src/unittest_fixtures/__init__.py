@@ -133,7 +133,11 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     If func is a generator function, apply it and add it to the test's cleanup.
     """
     fixtures = copy(test.fixtures)
-    opts = _OPTIONS.get(test.__class__, {}).get(name)
+    cls = type(test)
+    test_opts = {
+        k: v for cls in (*cls.mro(), cls) for k, v in _OPTIONS.get(cls, {}).items()
+    }
+    opts = test_opts.get(name)
 
     if inspect.isgeneratorfunction(func):
         return test.enterContext(contextmanager(func)(opts, fixtures))

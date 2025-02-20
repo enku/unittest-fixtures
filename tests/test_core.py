@@ -146,6 +146,43 @@ class RequiresTests(uf.TestCase):
         tc = MyTestCase()
         tc.setUp()
 
+    def test_inherits_parents_options(self) -> None:
+        @uf.depends()
+        def echo(options: str | None, _fixtures: uf.Fixtures) -> str:
+            return options or ""
+
+        @uf.options(echo="Hello World!")
+        @uf.requires(echo)
+        class MyBaseTestCase(uf.TestCase):
+            pass
+
+        @uf.requires(echo)
+        class MyTestCase(MyBaseTestCase):
+            def setUp(self) -> None:
+                self.assertEqual("Hello World!", self.fixtures.echo)
+
+        tc = MyTestCase()
+        tc.setUp()
+
+    def test_overides_parents_options(self) -> None:
+        @uf.depends()
+        def echo(options: str | None, _fixtures: uf.Fixtures) -> str:
+            return options or ""
+
+        @uf.requires(echo)
+        @uf.options(echo="Hello World!")
+        class MyBaseTestCase(uf.TestCase):
+            pass
+
+        @uf.requires(echo)
+        @uf.options(echo="override!")
+        class MyTestCase(MyBaseTestCase):
+            def setUp(self) -> None:
+                self.assertEqual("override!", self.fixtures.echo)
+
+        tc = MyTestCase()
+        tc.setUp()
+
 
 class CommonDepsTests(uf.TestCase):
     @staticmethod
