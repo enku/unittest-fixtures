@@ -10,22 +10,22 @@ from . import fixtures as fixtures_module
 class DependsTests(uf.TestCase):
     def test_has_deps(self) -> None:
         @uf.depends()
-        def fixture(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         self.assertEqual({}, uf._DEPS[fixture])
 
     def test_unnamed_deps(self) -> None:
         @uf.depends()
-        def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture_a(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         @uf.depends()
-        def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture_b(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         @uf.depends(fixture_a, fixture_b)
-        def fixture_c(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture_c(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         expected = {"fixture_a": fixture_a, "fixture_b": fixture_b}
@@ -33,15 +33,15 @@ class DependsTests(uf.TestCase):
 
     def test_named_deps(self) -> None:
         @uf.depends()
-        def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture_a(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         @uf.depends()
-        def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture_b(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         @uf.depends(a=fixture_a, b=fixture_b)
-        def fixture_c(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
+        def fixture_c(_options: None, _fixtures: uf.Fixtures) -> None:
             return
 
         expected = {"a": fixture_a, "b": fixture_b}
@@ -51,17 +51,17 @@ class DependsTests(uf.TestCase):
 class RequiresTests(uf.TestCase):
     @staticmethod
     @uf.depends()
-    def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+    def fixture_a(_options: None, _fixtures: uf.Fixtures) -> str:
         return "a"
 
     @staticmethod
     @uf.depends()
-    def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+    def fixture_b(_options: None, _fixtures: uf.Fixtures) -> str:
         return "b"
 
     @staticmethod
     @uf.depends(fixture_a, fixture_b)
-    def fixture_c(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> str:
+    def fixture_c(_options: None, fixtures: uf.Fixtures) -> str:
         return fixtures.fixture_a + fixtures.fixture_b  # type: ignore
 
     def test_unnamed_deps(self) -> None:
@@ -114,9 +114,7 @@ class RequiresTests(uf.TestCase):
         ran = False
 
         @uf.depends()
-        def fixture(
-            _options: uf.FixtureOptions, _fixtures: uf.Fixtures
-        ) -> uf.FixtureContext[int]:
+        def fixture(_options: None, _fixtures: uf.Fixtures) -> uf.FixtureContext[int]:
             nonlocal ran
             yield 6
             ran = True
@@ -135,15 +133,15 @@ class RequiresTests(uf.TestCase):
 
     def test_with_options(self) -> None:
         @uf.depends()
-        def fixture(options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
-            return str(options.get("echo", ""))
+        def echo(options: str | None, _fixtures: uf.Fixtures) -> str:
+            return options or ""
 
-        @uf.requires(fixture)
+        @uf.options(echo="Hello World!")
+        @uf.requires(echo)
         class MyTestCase(uf.TestCase):
-            options = {"echo": "Hello World!"}
 
             def post_setup(self) -> None:
-                self.assertEqual("Hello World!", self.fixtures.fixture)
+                self.assertEqual("Hello World!", self.fixtures.echo)
 
         tc = MyTestCase()
         tc.setUp()
@@ -152,17 +150,17 @@ class RequiresTests(uf.TestCase):
 class CommonDepsTests(uf.TestCase):
     @staticmethod
     @uf.depends()
-    def fixture_a(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+    def fixture_a(_options: None, _fixtures: uf.Fixtures) -> str:
         return "a"
 
     @staticmethod
     @uf.depends(fixture_a)
-    def fixture_b(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+    def fixture_b(_options: None, _fixtures: uf.Fixtures) -> str:
         return "b"
 
     @staticmethod
     @uf.depends(fixture_a)
-    def fixture_c(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> str:
+    def fixture_c(_options: None, _fixtures: uf.Fixtures) -> str:
         return "c"
 
     def test(self) -> None:
@@ -182,7 +180,7 @@ class LoadTests(uf.TestCase):
         uf.get_fixtures_module.cache_clear()
 
         @uf.depends("test_a")
-        def fixture(_options: uf.FixtureOptions, fixtures: uf.Fixtures) -> str:
+        def fixture(_options: None, fixtures: uf.Fixtures) -> str:
             self.assertEqual(fixtures, uf.Fixtures(test_a="test_a"))
             return "fixture"
 

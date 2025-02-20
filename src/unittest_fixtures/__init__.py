@@ -12,9 +12,8 @@ from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator, TypeAlias, TypeVar, cast
 
 Fixtures: TypeAlias = SimpleNamespace
-FixtureOptions: TypeAlias = dict[str, Any]
 FixtureContext: TypeAlias = Iterator
-FixtureFunction: TypeAlias = Callable[[FixtureOptions, Fixtures], Any]
+FixtureFunction: TypeAlias = Callable[[Any, Fixtures], Any]
 FixtureSpec: TypeAlias = str | FixtureFunction
 
 
@@ -25,8 +24,6 @@ class TestCase(unittest.TestCase):
     however doing so will make the type checkers happier.
     """
 
-    _options: FixtureOptions
-    options: FixtureOptions = {}
     fixtures: Fixtures
 
 
@@ -36,6 +33,7 @@ BaseTestCase = TestCase  # for backwards compatibility
 
 _REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
 _DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
+_OPTIONS: dict[TestCaseClass, dict[str, Any]] = {}
 
 
 def requires(
@@ -53,8 +51,7 @@ def requires(
         def setup(self: TestCase) -> None:
             super(test_case, self).setUp()
 
-            self.fixtures = getattr(self, "fixtures", None) or Fixtures()
-            self._options = get_options(self, test_case)
+            self.fixtures = Fixtures()
 
             setups = _REQUIREMENTS.get(test_case, {})
             add_fixtures(self, setups)
@@ -86,6 +83,17 @@ def depends(
     return dec
 
 
+def options(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
+    """Provide the given options to the given fixtures"""
+
+    def decorator(test_case: TestCaseClass) -> TestCaseClass:
+        test_case_options = _OPTIONS.setdefault(test_case, {})
+        test_case_options.update(kwargs)
+        return test_case
+
+    return decorator
+
+
 T = TypeVar("T", bound=TestCase)
 Param: TypeAlias = list[Any]
 Params: TypeAlias = list[Param]
@@ -108,14 +116,6 @@ def parametrized(lists_of_args: Params) -> Callable[[TestFunc], TestFunc]:
     return dec
 
 
-def get_options(test: TestCase, test_case: TestCaseClass) -> FixtureOptions:
-    """Return test's new options given the TestCase's options"""
-    options = test._options = getattr(test, "_options", {}).copy()
-    options.update(getattr(test_case, "options", {}))
-
-    return options
-
-
 def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     test's .fixtures attribute
@@ -125,20 +125,21 @@ def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
         if deps := _DEPS.get(func, {}):
             add_fixtures(test, deps)
         if not hasattr(test.fixtures, name):
-            setattr(test.fixtures, name, apply_func(func, test))
+            setattr(test.fixtures, name, apply_func(func, name, test))
 
 
-def apply_func(func: FixtureFunction, test: TestCase) -> Any:
+def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     """Apply the given fixture func to the given test options and return the result
 
     If func is a generator function, apply it and add it to the test's cleanup.
     """
     fixtures = copy(test.fixtures)
+    opts = _OPTIONS.get(test.__class__, {}).get(name)
 
     if inspect.isgeneratorfunction(func):
-        return test.enterContext(contextmanager(func)(test._options, fixtures))
+        return test.enterContext(contextmanager(func)(opts, fixtures))
 
-    return func(test._options, fixtures)
+    return func(opts, fixtures)
 
 
 def load(spec: FixtureSpec) -> FixtureFunction:
