@@ -13,7 +13,7 @@ class DependsTests(uf.TestCase):
         def fixture(_options: uf.FixtureOptions, _fixtures: uf.Fixtures) -> None:
             return
 
-        self.assertEqual({}, fixture._deps)  # type: ignore
+        self.assertEqual({}, uf._DEPS[fixture])
 
     def test_unnamed_deps(self) -> None:
         @uf.depends()
@@ -29,7 +29,7 @@ class DependsTests(uf.TestCase):
             return
 
         expected = {"fixture_a": fixture_a, "fixture_b": fixture_b}
-        self.assertEqual(expected, fixture_c._deps)  # type: ignore
+        self.assertEqual(expected, uf._DEPS[fixture_c])
 
     def test_named_deps(self) -> None:
         @uf.depends()
@@ -45,7 +45,7 @@ class DependsTests(uf.TestCase):
             return
 
         expected = {"a": fixture_a, "b": fixture_b}
-        self.assertEqual(expected, fixture_c._deps)  # type: ignore
+        self.assertEqual(expected, uf._DEPS[fixture_c])
 
 
 class RequiresTests(uf.TestCase):

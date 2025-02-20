@@ -35,6 +35,7 @@ TestCaseClass: TypeAlias = type[TestCase]
 BaseTestCase = TestCase  # for backwards compatibility
 
 _REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
+_DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
 
 
 def requires(
@@ -78,7 +79,7 @@ def depends(
         for name, dep in named_deps.items():
             fn_deps[name] = dep
 
-        fn._deps = fn_deps  # type: ignore[attr-defined]
+        _DEPS[fn] = fn_deps
 
         return fn
 
@@ -121,7 +122,7 @@ def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     """
     for name, spec in reqs.items():
         func = load(spec)
-        if deps := getattr(func, "_deps", {}):
+        if deps := _DEPS.get(func, {}):
             add_fixtures(test, deps)
         if not hasattr(test.fixtures, name):
             setattr(test.fixtures, name, apply_func(func, test))
