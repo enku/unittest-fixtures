@@ -48,16 +48,15 @@ def requires(
         for name, req in named_requirements.items():
             _REQUIREMENTS[test_case][name] = req
 
-        def setup(self: TestCase) -> None:
-            super(test_case, self).setUp()
+        original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
+        def setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
             self.fixtures = Fixtures()
 
             setups = _REQUIREMENTS.get(test_case, {})
             add_fixtures(self, setups)
 
-            if hasattr(self, "post_setup"):
-                self.post_setup()
+            original_setup(self, *args, **kwargs)
 
         setattr(test_case, "setUp", setup)
         return test_case

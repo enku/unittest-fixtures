@@ -96,12 +96,12 @@ class RequiresTests(uf.TestCase):
         expected = uf.Fixtures(fixture_a="a", fixture_b="b", c="ab")
         self.assertEqual(expected, tc.fixtures)
 
-    def test_post_setup(self) -> None:
+    def test__setup(self) -> None:
         ran = False
 
         @uf.requires(self.fixture_a)
         class MyTestCase(uf.TestCase):
-            def post_setup(self) -> None:
+            def setUp(self) -> None:
                 nonlocal ran
                 ran = not ran
 
@@ -140,7 +140,7 @@ class RequiresTests(uf.TestCase):
         @uf.requires(echo)
         class MyTestCase(uf.TestCase):
 
-            def post_setup(self) -> None:
+            def setUp(self) -> None:
                 self.assertEqual("Hello World!", self.fixtures.echo)
 
         tc = MyTestCase()
@@ -166,7 +166,7 @@ class CommonDepsTests(uf.TestCase):
     def test(self) -> None:
         @uf.requires(c=self.fixture_c, b=self.fixture_b, z=self.fixture_c)
         class MyTestCase(uf.TestCase):
-            def post_setup(self) -> None:
+            def setUp(self) -> None:
                 self.assertEqual(
                     uf.Fixtures(fixture_a="a", b="b", c="c", z="c"), self.fixtures
                 )
@@ -186,7 +186,7 @@ class LoadTests(uf.TestCase):
 
         @uf.requires(fixture)
         class MyTestCase(uf.TestCase):
-            def post_setup(self) -> None:
+            def setUp(self) -> None:
                 self.assertEqual(
                     self.fixtures, uf.Fixtures(test_a="test_a", fixture="fixture")
                 )
