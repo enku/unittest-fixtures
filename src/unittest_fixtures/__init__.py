@@ -139,9 +139,11 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     If func is a generator function, apply it and add it to the test's cleanup.
     """
     fixtures = copy(_FIXTURES[test])
-    cls = type(test)
+    test_case = type(test)
     test_opts = {
-        k: v for cls in (*cls.mro(), cls) for k, v in _OPTIONS.get(cls, {}).items()
+        k: v
+        for test_case in (*reversed(test_case.mro()), test_case)
+        for k, v in _OPTIONS.get(test_case, {}).items()
     }
     opts = test_opts.get(name)
 
