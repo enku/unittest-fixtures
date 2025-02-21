@@ -20,6 +20,7 @@ TestCaseClass: TypeAlias = type[TestCase]
 _REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
 _DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
 _OPTIONS: dict[TestCaseClass, dict[str, Any]] = {}
+_FIXTURES: dict[TestCase, Fixtures] = {}
 
 
 def given(
@@ -34,20 +35,19 @@ def given(
         for name, req in named_requirements.items():
             _REQUIREMENTS[test_case][name] = req
 
-        fixtures = Fixtures()
-
         for name, method in test_case.__dict__.items():
             if callable(method) and (name == "test" or name.startswith("test")):
-                setattr(test_case, name, make_wrapper(method, fixtures))
+                setattr(test_case, name, make_wrapper(method))
 
         original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
         def setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
-
+            _FIXTURES[self] = Fixtures()
             setups = _REQUIREMENTS.get(test_case, {})
-            add_fixtures(fixtures, self, setups)
+            add_fixtures(self, setups)
 
             original_setup(self, *args, **kwargs)
+            self.addCleanup(lambda: _FIXTURES.pop(self, None))
 
         setattr(test_case, "setUp", setup)
         return test_case
@@ -61,14 +61,12 @@ class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-m
     def __call__(self, _self: TestCase, *, fixtures: Fixtures) -> Any: ...
 
 
-def make_wrapper(
-    method: TestMethodWithFixturesKwarg, fixtures: Fixtures
-) -> Callable[[TestCase], Any]:
+def make_wrapper(method: TestMethodWithFixturesKwarg) -> Callable[[TestCase], Any]:
     """Wrap the given method so that the fixtures kwarg is passed"""
 
     @wraps(method)
     def wrapper(self: TestCase) -> Any:
-        return method(self, fixtures=fixtures)
+        return method(self, fixtures=_FIXTURES[self])
 
     return wrapper
 
@@ -124,28 +122,25 @@ def parametrized(lists_of_args: Params) -> Callable[[TestFunc], TestFunc]:
     return dec
 
 
-def add_fixtures(
-    fixtures: Fixtures, test: TestCase, reqs: dict[str, FixtureSpec]
-) -> None:
+def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
-    test's .fixtures attribute
+    _FIXTURES table
     """
+    fixtures = _FIXTURES[test]
     for name, spec in reqs.items():
         func = load(spec)
         if deps := _DEPS.get(func, {}):
-            add_fixtures(fixtures, test, deps)
+            add_fixtures(test, deps)
         if not hasattr(fixtures, name):
-            setattr(fixtures, name, apply_func(func, name, test, fixtures))
+            setattr(fixtures, name, apply_func(func, name, test))
 
 
-def apply_func(
-    func: FixtureFunction, name: str, test: TestCase, fixtures: Fixtures
-) -> Any:
+def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     """Apply the given fixture func to the given test options and return the result
 
     If func is a generator function, apply it and add it to the test's cleanup.
     """
-    fixtures = copy(fixtures)
+    fixtures = copy(_FIXTURES[test])
     cls = type(test)
     test_opts = {
         k: v for cls in (*cls.mro(), cls) for k, v in _OPTIONS.get(cls, {}).items()
