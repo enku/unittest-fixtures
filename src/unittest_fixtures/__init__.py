@@ -29,11 +29,12 @@ def given(
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
-        _REQUIREMENTS[test_case] = {
-            funcname(func): func for req in requirements for func in [req]
-        }
-        for name, req in named_requirements.items():
-            _REQUIREMENTS[test_case][name] = req
+        _REQUIREMENTS[test_case] = (
+            {}
+            | ancestor_requirements(test_case)
+            | {funcname(f): f for req in requirements for f in [req]}
+            | named_requirements
+        )
 
         for name, method in test_case.__dict__.items():
             if callable(method) and (name == "test" or name.startswith("test")):
@@ -41,15 +42,17 @@ def given(
 
         original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
-        def setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
+        def unittest_fixtures_setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
             _FIXTURES[self] = Fixtures()
             setups = _REQUIREMENTS.get(test_case, {})
             add_fixtures(self, setups)
 
-            original_setup(self, *args, **kwargs)
+            if original_setup.__name__ != "unittest_fixtures_setup":
+                original_setup(self, *args, **kwargs)
+
             self.addCleanup(lambda: _FIXTURES.pop(self, None))
 
-        setattr(test_case, "setUp", setup)
+        setattr(test_case, "setUp", unittest_fixtures_setup)
         return test_case
 
     return decorator
@@ -77,12 +80,7 @@ def fixture(
     """Declare fixture requiring fixtures given by the FixtureSpec"""
 
     def dec(fn: FixtureFunction) -> FixtureFunction:
-        fn_deps: dict[str, FixtureSpec] = {funcname(dep): dep for dep in deps}
-
-        for name, dep in named_deps.items():
-            fn_deps[name] = dep
-
-        _DEPS[fn] = fn_deps
+        _DEPS[fn] = {funcname(dep): dep for dep in deps} | named_deps
 
         return fn
 
@@ -151,6 +149,14 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
         return test.enterContext(contextmanager(func)(opts, fixtures))
 
     return func(opts, fixtures)
+
+
+def ancestor_requirements(test_case: TestCaseClass) -> dict[str, FixtureSpec]:
+    """Gather the requirments of the test_case's ancestors"""
+    reqs = {}
+    for ancestor in reversed(test_case.mro()):
+        reqs.update(_REQUIREMENTS.get(ancestor, {}))
+    return reqs
 
 
 def load(spec: FixtureSpec) -> FixtureFunction:

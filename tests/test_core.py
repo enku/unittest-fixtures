@@ -151,6 +151,25 @@ class RequiresTests(TestCase):
         result = MyTestCase("test").run()
         assert_test_result(self, result)
 
+    def test_inheritance(self) -> None:
+        @given("test_a")
+        class Parent(TestCase):
+            pass
+
+        @fixture()
+        def test_b(
+            _options: None, fixtures: Fixtures  # pylint: disable=unused-argument
+        ) -> bool:
+            return True
+
+        @given(test_b)
+        class Child(Parent):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures, Fixtures(test_a="test_a", test_b=True))
+
+        result = Child("test").run()
+        assert_test_result(self, result)
+
     def test_inherits_parents_options(self) -> None:
         @fixture()
         def echo(options: str | None, _fixtures: Fixtures) -> str:
