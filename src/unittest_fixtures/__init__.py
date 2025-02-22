@@ -12,7 +12,7 @@ from unittest import TestCase
 
 Fixtures: TypeAlias = SimpleNamespace
 FixtureContext: TypeAlias = Iterator
-FixtureFunction: TypeAlias = Callable[[Any, Fixtures], Any]
+FixtureFunction: TypeAlias = Callable[[Fixtures], Any]
 FixtureSpec: TypeAlias = str | FixtureFunction
 
 
@@ -147,12 +147,12 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
         for test_case in (*reversed(test_case.mro()), test_case)
         for k, v in _OPTIONS.get(test_case, {}).items()
     }
-    opts = test_opts.get(name)
+    opts = opts_for_name(name, test_opts)
 
     if inspect.isgeneratorfunction(func):
-        return test.enterContext(contextmanager(func)(opts, fixtures))
+        return test.enterContext(contextmanager(func)(fixtures, **opts))
 
-    return func(opts, fixtures)
+    return func(fixtures, **opts)
 
 
 def ancestor_requirements(test_case: TestCaseClass) -> dict[str, FixtureSpec]:
@@ -194,6 +194,16 @@ def get_fixtures_module() -> ModuleType:
         module_path = settings.get("fixtures-module", module_path)
 
     return importlib.import_module(module_path)
+
+
+def opts_for_name(name: str, options: dict[str, Any]) -> dict[str, Any]:
+    """Return dict of options for the fixture with the given name"""
+    return {
+        fixture_option_name or fixture_name: value
+        for key, value in options.items()
+        for fixture_name, _, fixture_option_name in [key.partition("__")]
+        if fixture_name == name
+    }
 
 
 @cache

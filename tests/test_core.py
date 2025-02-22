@@ -20,22 +20,22 @@ from . import fixtures as fixtures_module
 class FixtureTests(TestCase):
     def test_has_deps(self) -> None:
         @fixture()
-        def f(_options: None, _fixtures: Fixtures) -> None:
+        def f(_fixtures: Fixtures) -> None:
             return
 
         self.assertEqual({}, _DEPS[f])
 
     def test_unnamed_deps(self) -> None:
         @fixture()
-        def fixture_a(_options: None, _fixtures: Fixtures) -> None:
+        def fixture_a(_fixtures: Fixtures) -> None:
             return
 
         @fixture()
-        def fixture_b(_options: None, _fixtures: Fixtures) -> None:
+        def fixture_b(_fixtures: Fixtures) -> None:
             return
 
         @fixture(fixture_a, fixture_b)
-        def fixture_c(_options: None, _fixtures: Fixtures) -> None:
+        def fixture_c(_fixtures: Fixtures) -> None:
             return
 
         expected = {"fixture_a": fixture_a, "fixture_b": fixture_b}
@@ -43,15 +43,15 @@ class FixtureTests(TestCase):
 
     def test_named_deps(self) -> None:
         @fixture()
-        def fixture_a(_options: None, _fixtures: Fixtures) -> None:
+        def fixture_a(_fixtures: Fixtures) -> None:
             return
 
         @fixture()
-        def fixture_b(_options: None, _fixtures: Fixtures) -> None:
+        def fixture_b(_fixtures: Fixtures) -> None:
             return
 
         @fixture(a=fixture_a, b=fixture_b)
-        def fixture_c(_options: None, _fixtures: Fixtures) -> None:
+        def fixture_c(_fixtures: Fixtures) -> None:
             return
 
         expected = {"a": fixture_a, "b": fixture_b}
@@ -61,17 +61,17 @@ class FixtureTests(TestCase):
 class RequiresTests(TestCase):
     @staticmethod
     @fixture()
-    def fixture_a(_options: None, _fixtures: Fixtures) -> str:
+    def fixture_a(_fixtures: Fixtures) -> str:
         return "a"
 
     @staticmethod
     @fixture()
-    def fixture_b(_options: None, _fixtures: Fixtures) -> str:
+    def fixture_b(_fixtures: Fixtures) -> str:
         return "b"
 
     @staticmethod
     @fixture(fixture_a, fixture_b)
-    def fixture_c(_options: None, fixtures: Fixtures) -> str:
+    def fixture_c(fixtures: Fixtures) -> str:
         return fixtures.fixture_a + fixtures.fixture_b  # type: ignore
 
     def test_unnamed_deps(self) -> None:
@@ -122,7 +122,7 @@ class RequiresTests(TestCase):
         ran = False
 
         @fixture()
-        def f(_options: None, _fixtures: Fixtures) -> FixtureContext[int]:
+        def f(_fixtures: Fixtures) -> FixtureContext[int]:
             nonlocal ran
             yield 6
             ran = True
@@ -139,11 +139,11 @@ class RequiresTests(TestCase):
 
     def test_with_options(self) -> None:
         @fixture()
-        def echo(options: str | None, _fixtures: Fixtures) -> str:
-            return options or ""
+        def echo(_fixtures: Fixtures, echo: str = "") -> str:
+            return echo
 
-        @where(echo="Hello World!")
         @given(echo)
+        @where(echo="Hello World!")
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual("Hello World!", fixtures.echo)
@@ -157,9 +157,7 @@ class RequiresTests(TestCase):
             pass
 
         @fixture()
-        def test_b(
-            _options: None, fixtures: Fixtures  # pylint: disable=unused-argument
-        ) -> bool:
+        def test_b(_fixtures: Fixtures) -> bool:
             return True
 
         @given(test_b)
@@ -172,8 +170,8 @@ class RequiresTests(TestCase):
 
     def test_inherits_parents_options(self) -> None:
         @fixture()
-        def echo(options: str | None, _fixtures: Fixtures) -> str:
-            return options or ""
+        def echo(_fixtures: Fixtures, echo: str = "") -> str:
+            return echo
 
         @given(echo)
         @where(echo="Hello World!")
@@ -190,8 +188,8 @@ class RequiresTests(TestCase):
 
     def test_overrides_parents_options(self) -> None:
         @fixture()
-        def echo(options: str | None, _fixtures: Fixtures) -> str:
-            return options or ""
+        def echo(_fixtures: Fixtures, echo: str = "") -> str:
+            return echo
 
         @given(echo)
         @where(echo="Hello World!")
@@ -209,11 +207,11 @@ class RequiresTests(TestCase):
 
     def test_stacked_given_decorators(self) -> None:
         @fixture()
-        def a(_options: None, _fixtures: Fixtures) -> None:
+        def a(_fixtures: Fixtures) -> None:
             return
 
         @fixture()
-        def b(_options: None, _fixtures: Fixtures) -> None:
+        def b(_fixtures: Fixtures) -> None:
             return
 
         @given(a)
@@ -226,21 +224,37 @@ class RequiresTests(TestCase):
         result = MyTestCase("test").run()
         assert_test_result(self, result)
 
+    def test_options_to_deps_passed_as_kwargs(self) -> None:
+        @fixture()
+        def echo(
+            _fixtures: Fixtures, echo: str = "Hello world", punc: str = "!"
+        ) -> str:
+            return f"{echo}{punc}"
+
+        @given(echo)
+        @where(echo="test", echo__punc="!!!")
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual("test!!!", fixtures.echo)
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+
 
 class CommonDepsTests(TestCase):
     @staticmethod
     @fixture()
-    def fixture_a(_options: None, _fixtures: Fixtures) -> str:
+    def fixture_a(_fixtures: Fixtures) -> str:
         return "a"
 
     @staticmethod
     @fixture(fixture_a)
-    def fixture_b(_options: None, _fixtures: Fixtures) -> str:
+    def fixture_b(_fixtures: Fixtures) -> str:
         return "b"
 
     @staticmethod
     @fixture(fixture_a)
-    def fixture_c(_options: None, _fixtures: Fixtures) -> str:
+    def fixture_c(_fixtures: Fixtures) -> str:
         return "c"
 
     def test(self) -> None:
@@ -258,7 +272,7 @@ class LoadTests(TestCase):
         get_fixtures_module.cache_clear()
 
         @fixture("test_a")
-        def f(_options: None, fixtures: Fixtures) -> str:
+        def f(fixtures: Fixtures) -> str:
             self.assertEqual(fixtures, Fixtures(test_a="test_a"))
             return "fixture"
 
