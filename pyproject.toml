@@ -39,3 +39,6 @@ skip-magic-trailing-comma = true
 [tool.coverage.run]
 branch = true
 source = ["unittest_fixtures"]
+
+[tool.isort]
+profile = "black"
