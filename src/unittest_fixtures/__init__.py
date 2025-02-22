@@ -156,7 +156,7 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
 
 
 def ancestor_requirements(test_case: TestCaseClass) -> dict[str, FixtureSpec]:
-    """Gather the requirments of the test_case's ancestors"""
+    """Gather the requirements of the test_case's ancestors"""
     reqs = {}
     for ancestor in reversed(test_case.mro()):
         reqs.update(_REQUIREMENTS.get(ancestor, {}))
