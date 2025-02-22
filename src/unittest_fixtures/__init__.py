@@ -38,7 +38,8 @@ def given(
 
         for name, method in test_case.__dict__.items():
             if callable(method) and (name == "test" or name.startswith("test")):
-                setattr(test_case, name, make_wrapper(method))
+                if not hasattr(method, "__unittest_fixtures_wrapped__"):
+                    setattr(test_case, name, make_wrapper(method))
 
         original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
@@ -71,6 +72,7 @@ def make_wrapper(method: TestMethodWithFixturesKwarg) -> Callable[[TestCase], An
     def wrapper(self: TestCase) -> Any:
         return method(self, fixtures=_FIXTURES[self])
 
+    wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore
     return wrapper
 
 

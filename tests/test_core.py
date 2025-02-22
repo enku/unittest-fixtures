@@ -207,6 +207,25 @@ class RequiresTests(TestCase):
         result = MyTestCase("test").run()
         assert_test_result(self, result)
 
+    def test_stacked_given_decorators(self) -> None:
+        @fixture()
+        def a(_options: None, _fixtures: Fixtures) -> None:
+            return
+
+        @fixture()
+        def b(_options: None, _fixtures: Fixtures) -> None:
+            return
+
+        @given(a)
+        @given(b)
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertTrue(hasattr(fixtures, "a"))
+                self.assertTrue(hasattr(fixtures, "b"))
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+
 
 class CommonDepsTests(TestCase):
     @staticmethod
