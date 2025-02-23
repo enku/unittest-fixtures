@@ -42,7 +42,7 @@ def dog(fixtures):
 Fixture functions are always passed a `Fixtures` argument. Because fixtures
 can depend on other fixtures. For example:
 
-```
+```python
 @fixture("dog")
 def person(fixture):
     p = Person(name="Jane")
@@ -155,7 +155,7 @@ def jenkins(fixtures, root=None):
 The above example shows that one can get pretty fancy... or creative with
 one's fixture definitions.
 
-Fixtures can also have named depenencies. So in the above example, if one
+Fixtures can also have named dependencies. So in the above example, if one
 wanted a different `tmpdir` than the "global" one:
 
 ```python
@@ -175,7 +175,7 @@ class MyTest(TestCase):
        self.assertNotEqual(fixtures.jenkins.root, fixtures.tmpdir)
 ```
 
-Again if the two fixtures have different names then they are two seperate
+Again if the two fixtures have different names then they are two separate
 fixtures.  In general one should not use named fixtures unless one wants
 multiple fixtures of the same type.
 
