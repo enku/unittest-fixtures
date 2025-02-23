@@ -138,7 +138,7 @@ Using the `unittest.mock` library is another good example of using context
 manager fixtures.
 
 
-# fixture-depending fixtures
+## fixture-depending fixtures
 
 As stated above, fixtures can depend on other fitures. This is done by
 "declaring" the dependencies in the `fixture` decorator.  Fixtures are then
