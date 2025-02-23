@@ -183,6 +183,29 @@ fixtures.  In general one should not use named fixtures unless one wants
 multiple fixtures of the same type.
 
 
+## `@parametrized`
+
+Not so much a fixtures tool, however unittest-fixtures also comes with a
+`@parametrized` decorator that acts as a wrapper for unittest's
+[subtests](https://docs.python.org/3/library/unittest.html#distinguishing-test-iterations-using-subtests).
+A rather contrived example comes from unittest-fixtures own tests:
+
+
+```python
+from unittest_fixtures import parametrized
+
+class ParametrizeTests(TestCase):
+    values = {1, 2}
+
+    @parametrized([[1, values], [2, values], [None, values]])
+    def test(self, value: int | None, values: set[int]) -> None:
+        if value is not None:
+            self.assertIn(value, values)
+            values.discard(value)
+            return
+        self.assertEqual(set(), values)
+```
+
 ## Conclusion
 
 Creating unittest fixtures is clean and fun with unittest-fixtures.
