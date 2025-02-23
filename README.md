@@ -198,7 +198,7 @@ class ParametrizeTests(TestCase):
     values = {1, 2}
 
     @parametrized([[1, values], [2, values], [None, values]])
-    def test(self, value: int | None, values: set[int]) -> None:
+    def test(self, value, values):
         if value is not None:
             self.assertIn(value, values)
             values.discard(value)
