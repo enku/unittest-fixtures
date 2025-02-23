@@ -44,7 +44,7 @@ can depend on other fixtures. For example:
 
 ```python
 @fixture("dog")
-def person(fixture):
+def person(fixtures):
     p = Person(name="Jane")
     p.pet = fixture.dog
     return p
@@ -102,7 +102,7 @@ class MyTest(TestCase):
         self.assertIs(person.pet, dog)
 ```
 
-## where  (fixture parameters)
+## `@where` (fixture parameters)
 
 The `where` decorator can be used to pass parameters to a fixture function.
 Fixture functions are not required to take arguments. To pass a parameter to a
