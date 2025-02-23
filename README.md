@@ -4,12 +4,14 @@
 
 unittest-fixtures spun off from my [Gentoo Build
 Publisher](https://github.com/enku/gentoo-build-publisher) project. I use
-unittest, the test framework in the Python standard library, where it's
-customary to define a TestCase's fixtures in the `.setUp()` method. Having
-done it this way for years, it occurred to me one day that this goes against
-OCP. What if instead of cracking open the `.setUp()` method to add a fixture
-to a TestCase one could instead add a decorator?  That's what
-unittest-fixtures allows one to do.
+[unittest](https://docs.python.org/3/library/unittest.html), the test
+framework in the Python standard library, where it's customary to define a
+TestCase's fixtures in the `.setUp()` method. Having done it this way for
+years, it occurred to me one day that this goes against
+[OCP](https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle). What if
+instead of cracking open the `.setUp()` method to add a fixture to a TestCase
+one could instead add a decorator?  That's what unittest-fixtures allows one
+to do.
 
 ```python
 from unittest_fixtures import given
