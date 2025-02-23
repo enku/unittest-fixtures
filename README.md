@@ -2,7 +2,8 @@
 
 ## Description
 
-unittest-fixtures is a spin-off from my Gentoo Build Publisher project. I use
+unittest-fixtures spun off from my [Gentoo Build
+Publisher](https://github.com/enku/gentoo-build-publisher) project. I use
 unittest, the test framework in the Python standard library, where it's
 customary to define a TestCase's fixtures in the `.setUp()` method. Having
 done it this way for years, it occurred to me one day that this goes against
@@ -46,7 +47,7 @@ can depend on other fixtures. For example:
 @fixture("dog")
 def person(fixtures):
     p = Person(name="Jane")
-    p.pet = fixture.dog
+    p.pet = fixtures.dog
     return p
 ```
 
