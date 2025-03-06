@@ -1,20 +1,10 @@
 # pylint: disable=missing-docstring,protected-access
-import builtins
-import unittest.result
-from unittest import TestCase, mock
+from unittest import TestCase
 
-from unittest_fixtures import (
-    _DEPS,
-    FixtureContext,
-    Fixtures,
-    fixture,
-    get_fixtures_module,
-    given,
-    parametrized,
-    where,
-)
+from unittest_fixtures import FixtureContext, Fixtures, fixture, given, where
+from unittest_fixtures.fixtures import _DEPS
 
-from . import fixtures as fixtures_module
+from . import assert_test_result
 
 
 class FixtureTests(TestCase):
@@ -265,60 +255,3 @@ class CommonDepsTests(TestCase):
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
-
-
-class LoadTests(TestCase):
-    def test_by_string(self) -> None:
-        get_fixtures_module.cache_clear()
-
-        @fixture("test_a")
-        def f(fixtures: Fixtures) -> str:
-            self.assertEqual(fixtures, Fixtures(test_a="test_a"))
-            return "fixture"
-
-        @given(f)
-        class MyTestCase(TestCase):
-            def test(self, fixtures: Fixtures) -> None:
-                self.assertEqual(fixtures, Fixtures(test_a="test_a", f="fixture"))
-
-        result = MyTestCase("test").run()
-        assert_test_result(self, result)
-
-
-class GetFixturesModuleTests(TestCase):
-    def test_with_missing_pyproject_toml(self) -> None:
-        with mock.patch.object(builtins, "open") as mock_open:
-            mock_open.side_effect = FileNotFoundError
-            module = get_fixtures_module()
-
-        assert module is fixtures_module
-
-
-class ParametrizeTests(TestCase):
-    values = {1, 2}
-
-    @parametrized([[1, values], [2, values], [None, values]])
-    def test(self, value: int | None, values: set[int]) -> None:
-        if value is not None:
-            self.assertIn(value, values)
-            values.discard(value)
-            return
-        self.assertEqual(set(), values)
-
-
-def assert_test_result(
-    self: TestCase, result: unittest.result.TestResult | None
-) -> None:
-    self.assertIsNotNone(result, "No result given")
-    assert result
-
-    if result.failures:
-        msg = ""
-        for failure in result.failures:
-            msg = f"{msg}\n{'\n'.join(str(f) for f in failure)}"
-            self.fail(msg)
-    if result.errors:
-        msg = ""
-        for error in result.errors:
-            msg = f"{msg}\n{'\n'.join(str(f) for f in error)}"
-            self.fail(msg)
