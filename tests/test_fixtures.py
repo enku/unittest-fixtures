@@ -1,6 +1,5 @@
 # pylint: disable=missing-docstring
 
-import builtins
 import importlib
 from unittest import TestCase, mock
 
@@ -31,9 +30,11 @@ class LoadTests(TestCase):
 class GetFixturesModuleTests(TestCase):
     def test_with_missing_pyproject_toml(self) -> None:
         fixtures_module = importlib.import_module("tests.fixtures")
+        get_fixtures_module.cache_clear()
 
-        with mock.patch.object(builtins, "open") as mock_open:
+        with mock.patch("unittest_fixtures.fixtures.open") as mock_open:
             mock_open.side_effect = FileNotFoundError
             module = get_fixtures_module()
 
         self.assertIs(module, fixtures_module)
+        mock_open.assert_called_once_with("pyproject.toml", "rb")
