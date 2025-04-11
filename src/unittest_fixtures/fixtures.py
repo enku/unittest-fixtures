@@ -26,7 +26,7 @@ _FIXTURES: dict[TestCase, Fixtures] = {}
 class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-methods
     """Test methods that take a fixtures kwarg"""
 
-    def __call__(self, _self: TestCase, *, fixtures: Fixtures) -> Any: ...
+    def __call__(self, _self: TestCase, *, fixtures: Fixtures) -> Any: ...  # pragma: no cover
 
 
 def given(
