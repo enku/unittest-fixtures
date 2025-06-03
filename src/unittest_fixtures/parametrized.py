@@ -13,7 +13,7 @@ TestFunc: TypeAlias = Callable[..., Any]
 def parametrized(lists_of_args: Params) -> Callable[[TestFunc], TestFunc]:
     """Turn TestCase test method into parametrized test"""
 
-    def dec(func: TestFunc) -> TestFunc:
+    def decorator(func: TestFunc) -> TestFunc:
         @wraps(func)
         def wrapper(self: T, *args: Any, **kwargs: Any) -> None:
             for list_of_args in lists_of_args:
@@ -23,4 +23,4 @@ def parametrized(lists_of_args: Params) -> Callable[[TestFunc], TestFunc]:
 
         return wrapper
 
-    return dec
+    return decorator
