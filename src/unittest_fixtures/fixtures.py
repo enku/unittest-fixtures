@@ -72,12 +72,12 @@ def fixture(
 ) -> Callable[[FixtureFunction], FixtureFunction]:
     """Declare fixture requiring fixtures given by the FixtureSpec"""
 
-    def dec(fn: FixtureFunction) -> FixtureFunction:
+    def decorator(fn: FixtureFunction) -> FixtureFunction:
         _DEPS[fn] = {funcname(dep): dep for dep in deps} | named_deps
 
         return fn
 
-    return dec
+    return decorator
 
 
 def where(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
