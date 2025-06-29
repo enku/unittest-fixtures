@@ -9,7 +9,7 @@ from unittest_fixtures.fixtures import get_fixtures_module
 from . import assert_test_result
 
 
-class LoadTests(TestCase):
+class LoadFixtureTests(TestCase):
     def test_by_string(self) -> None:
         get_fixtures_module.cache_clear()
 

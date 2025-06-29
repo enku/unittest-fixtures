@@ -108,7 +108,7 @@ def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     """
     fixtures = _FIXTURES[test]
     for name, spec in reqs.items():
-        func = load(spec)
+        func = _load_fixture(spec)
         if deps := _DEPS.get(func, {}):
             add_fixtures(test, deps)
         if not hasattr(fixtures, name):
@@ -143,7 +143,7 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     return func(fixtures, **opts)
 
 
-def load(spec: FixtureSpec) -> FixtureFunction:
+def _load_fixture(spec: FixtureSpec) -> FixtureFunction:
     """Load and return the FixtureFunction given by FixtureSpec
 
     If spec is a string, the function is imported from the project's settings, which
