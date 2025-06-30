@@ -21,6 +21,7 @@ _REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
 _DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
 _OPTIONS: dict[TestCaseClass, dict[str, Any]] = {}
 _FIXTURES: dict[TestCase, Fixtures] = {}
+_FIXTURE_PATH: dict[str, list[ModuleType]] = {}
 
 
 class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-methods
@@ -106,9 +107,10 @@ def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     _FIXTURES table
     """
+    test_module = test.__module__
     fixtures = _FIXTURES[test]
     for name, spec in reqs.items():
-        func = _load_fixture(spec)
+        func = _load_fixture(test_module, spec)
         if deps := _DEPS.get(func, {}):
             add_fixtures(test, deps)
         if not hasattr(fixtures, name):
@@ -143,7 +145,17 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     return func(fixtures, **opts)
 
 
-def _load_fixture(spec: FixtureSpec) -> FixtureFunction:
+def load(*fixture_modules: str) -> None:
+    """Load the given fixture modules for the caller's module"""
+    if caller := inspect.stack()[1][0].f_globals.get("__name__"):
+        for fixture_module in fixture_modules:
+            module = importlib.import_module(fixture_module)
+            _FIXTURE_PATH.setdefault(caller, []).append(module)
+    else:  # pragma: no cover
+        raise RuntimeError("Cannot resolve caller's module")
+
+
+def _load_fixture(test_module: str, spec: FixtureSpec) -> FixtureFunction:
     """Load and return the FixtureFunction given by FixtureSpec
 
     If spec is a string, the function is imported from the project's settings, which
@@ -152,8 +164,15 @@ def _load_fixture(spec: FixtureSpec) -> FixtureFunction:
     if not isinstance(spec, str):
         return spec
 
-    fixtures_module = get_fixtures_module()
-    return cast(FixtureFunction, getattr(fixtures_module, spec))
+    fixtures_modules = _FIXTURE_PATH[test_module]
+
+    for fixtures_module in fixtures_modules:
+        try:
+            return cast(FixtureFunction, getattr(fixtures_module, spec))
+        except AttributeError:
+            continue
+
+    raise LookupError(spec)
 
 
 @cache

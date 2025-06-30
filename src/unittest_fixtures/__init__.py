@@ -1,6 +1,6 @@
 """Fixtures framework"""
 
-from unittest_fixtures.fixtures import fixture, given, where
+from unittest_fixtures.fixtures import fixture, given, load, where
 from unittest_fixtures.parametrized import parametrized
 from unittest_fixtures.types import (
     FixtureContext,
@@ -18,6 +18,7 @@ __all__ = (
     "TestCaseClass",
     "fixture",
     "given",
+    "load",
     "parametrized",
     "where",
 )

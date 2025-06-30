@@ -3,10 +3,12 @@
 import importlib
 from unittest import TestCase, mock
 
-from unittest_fixtures import Fixtures, fixture, given
+from unittest_fixtures import Fixtures, fixture, given, load
 from unittest_fixtures.fixtures import get_fixtures_module
 
 from . import assert_test_result
+
+load("tests.fixtures")
 
 
 class LoadFixtureTests(TestCase):

@@ -14,7 +14,12 @@ one could instead add a decorator?  That's what unittest-fixtures allows one
 to do.
 
 ```python
-from unittest_fixtures import given
+from unittest_fixtures import given, load
+
+# modules that define fixtures are searched in the order they are loaded. This
+is done on a per-module basis.
+load("tests.fixtures.lib1", "tests.fixtures.lib2")
+load("tests.fixtures.lib3")
 
 @given("dog")
 class MyTest(TestCase):
@@ -24,9 +29,8 @@ class MyTest(TestCase):
 
 In the above example, `"dog"` is a fixture function. Fixture functions are
 passed to the `given` decorator. They can be passed as a string or reference.
-If one is passed as a string, that fixture function is looked for in a
-standard place. By default this is the `tests/fixtures.py` module in one's
-project's root.
+If one is passed as a string, that fixture function is searched for in a the
+modules that are passed to `load()`, in the order given.  standard place.
 
 
 ## Fixture functions
