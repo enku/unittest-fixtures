@@ -2,7 +2,7 @@
 from unittest import TestCase
 
 from unittest_fixtures import FixtureContext, Fixtures, fixture, given, load, where
-from unittest_fixtures.fixtures import _DEPS, _FIXTURE_PATH
+from unittest_fixtures.fixtures import _state
 
 from . import assert_test_result
 
@@ -15,7 +15,7 @@ class FixtureTests(TestCase):
         def f(_fixtures: Fixtures) -> None:
             return
 
-        self.assertEqual({}, _DEPS[f])
+        self.assertEqual({}, _state.deps[f])
 
     def test_unnamed_deps(self) -> None:
         @fixture()
@@ -31,7 +31,7 @@ class FixtureTests(TestCase):
             return
 
         expected = {"fixture_a": fixture_a, "fixture_b": fixture_b}
-        self.assertEqual(expected, _DEPS[fixture_c])
+        self.assertEqual(expected, _state.deps[fixture_c])
 
     def test_named_deps(self) -> None:
         @fixture()
@@ -47,7 +47,7 @@ class FixtureTests(TestCase):
             return
 
         expected = {"a": fixture_a, "b": fixture_b}
-        self.assertEqual(expected, _DEPS[fixture_c])
+        self.assertEqual(expected, _state.deps[fixture_c])
 
 
 class RequiresTests(TestCase):
@@ -261,11 +261,11 @@ class CommonDepsTests(TestCase):
 
 class LoadTests(TestCase):
     def setUp(self) -> None:
-        self.orig = _FIXTURE_PATH[__name__].copy()
-        del _FIXTURE_PATH[__name__]
+        self.orig = _state.fixture_path[__name__].copy()
+        del _state.fixture_path[__name__]
 
     def tearDown(self) -> None:
-        _FIXTURE_PATH[__name__] = self.orig
+        _state.fixture_path[__name__] = self.orig
 
     def test(self) -> None:
         load("tests.other_fixtures")

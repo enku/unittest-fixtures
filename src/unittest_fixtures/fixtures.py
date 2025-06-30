@@ -4,6 +4,7 @@ import importlib
 import inspect
 from contextlib import contextmanager
 from copy import copy
+from dataclasses import dataclass
 from functools import cache, wraps
 from types import ModuleType
 from typing import Any, Callable, Protocol, cast
@@ -16,11 +17,19 @@ from unittest_fixtures.types import (
     TestCaseClass,
 )
 
-_REQUIREMENTS: dict[TestCaseClass, dict[str, FixtureSpec]] = {}
-_DEPS: dict[FixtureFunction, dict[str, FixtureSpec]] = {}
-_OPTIONS: dict[TestCaseClass, dict[str, Any]] = {}
-_FIXTURES: dict[TestCase, Fixtures] = {}
-_FIXTURE_PATH: dict[str, list[ModuleType]] = {}
+
+# namespace for state variables
+@dataclass(frozen=True, kw_only=True)
+class _State:
+    requirements: dict[TestCaseClass, dict[str, FixtureSpec]]
+    deps: dict[FixtureFunction, dict[str, FixtureSpec]]
+    options: dict[TestCaseClass, dict[str, Any]]
+    fixtures: dict[TestCase, Fixtures]
+    fixture_path: dict[str, list[ModuleType]]
+
+
+_state = _State(requirements={}, deps={}, options={}, fixtures={}, fixture_path={})
+del _State
 
 
 class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-methods
@@ -37,7 +46,7 @@ def given(
     """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
-        _REQUIREMENTS[test_case] = (
+        _state.requirements[test_case] = (
             {}
             | ancestor_requirements(test_case)
             | {funcname(f): f for req in requirements for f in [req]}
@@ -52,14 +61,14 @@ def given(
         original_setup = getattr(test_case, "setUp", lambda *args, **kwargs: None)
 
         def unittest_fixtures_setup(self: TestCase, *args: Any, **kwargs: Any) -> None:
-            _FIXTURES[self] = Fixtures()
-            setups = _REQUIREMENTS.get(test_case, {})
+            _state.fixtures[self] = Fixtures()
+            setups = _state.requirements.get(test_case, {})
             add_fixtures(self, setups)
 
             if original_setup.__name__ != "unittest_fixtures_setup":
                 original_setup(self, *args, **kwargs)
 
-            self.addCleanup(lambda: _FIXTURES.pop(self, None))
+            self.addCleanup(lambda: _state.fixtures.pop(self, None))
 
         setattr(test_case, "setUp", unittest_fixtures_setup)
         return test_case
@@ -73,7 +82,7 @@ def fixture(
     """Declare fixture requiring fixtures given by the FixtureSpec"""
 
     def decorator(fn: FixtureFunction) -> FixtureFunction:
-        _DEPS[fn] = {funcname(dep): dep for dep in deps} | named_deps
+        _state.deps[fn] = {funcname(dep): dep for dep in deps} | named_deps
 
         return fn
 
@@ -84,7 +93,7 @@ def where(**kwargs: Any) -> Callable[[TestCaseClass], TestCaseClass]:
     """Provide the given options to the given fixtures"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
-        test_case_options = _OPTIONS.setdefault(test_case, {})
+        test_case_options = _state.options.setdefault(test_case, {})
         test_case_options.update(kwargs)
         return test_case
 
@@ -96,7 +105,7 @@ def make_wrapper(method: TestMethodWithFixturesKwarg) -> Callable[[TestCase], An
 
     @wraps(method)
     def wrapper(self: TestCase) -> Any:
-        return method(self, fixtures=_FIXTURES[self])
+        return method(self, fixtures=_state.fixtures[self])
 
     wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore
     return wrapper
@@ -107,10 +116,10 @@ def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
     _FIXTURES table
     """
     test_module = test.__module__
-    fixtures = _FIXTURES[test]
+    fixtures = _state.fixtures[test]
     for name, spec in reqs.items():
         func = _load_fixture(test_module, spec)
-        if deps := _DEPS.get(func, {}):
+        if deps := _state.deps.get(func, {}):
             add_fixtures(test, deps)
         if not hasattr(fixtures, name):
             setattr(fixtures, name, apply_func(func, name, test))
@@ -120,7 +129,7 @@ def ancestor_requirements(test_case: TestCaseClass) -> dict[str, FixtureSpec]:
     """Gather the requirements of the test_case's ancestors"""
     reqs = {}
     for ancestor in reversed(test_case.mro()):
-        reqs.update(_REQUIREMENTS.get(ancestor, {}))
+        reqs.update(_state.requirements.get(ancestor, {}))
     return reqs
 
 
@@ -129,12 +138,12 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
 
     If func is a generator function, apply it and add it to the test's cleanup.
     """
-    fixtures = copy(_FIXTURES[test])
+    fixtures = copy(_state.fixtures[test])
     test_case = type(test)
     test_opts = {
         k: v
         for test_case in (*reversed(test_case.mro()), test_case)
-        for k, v in _OPTIONS.get(test_case, {}).items()
+        for k, v in _state.options.get(test_case, {}).items()
     }
     opts = opts_for_name(name, test_opts)
 
@@ -149,7 +158,7 @@ def load(*fixture_modules: str) -> None:
     if caller := inspect.stack()[1][0].f_globals.get("__name__"):
         for fixture_module in fixture_modules:
             module = importlib.import_module(fixture_module)
-            _FIXTURE_PATH.setdefault(caller, []).append(module)
+            _state.fixture_path.setdefault(caller, []).append(module)
     else:  # pragma: no cover
         raise RuntimeError("Cannot resolve caller's module")
 
@@ -163,7 +172,7 @@ def _load_fixture(test_module: str, spec: FixtureSpec) -> FixtureFunction:
     if not isinstance(spec, str):
         return spec
 
-    fixtures_modules = _FIXTURE_PATH[test_module]
+    fixtures_modules = _state.fixture_path[test_module]
 
     for fixtures_module in fixtures_modules:
         try:
