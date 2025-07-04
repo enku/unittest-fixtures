@@ -114,7 +114,7 @@ function, followed by `__` followed by the parameter name. For example:
 name as the fixture itself. For example:
 
 ```python
-@given("settings")
+@given(settings)
 @where(settings={"DEBUG": True, "SECRET": "sauce"})
 class MyTest(TestCase):
     ...
