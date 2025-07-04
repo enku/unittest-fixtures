@@ -1,34 +1,26 @@
 """Creating and Using Fixtures"""
 
-import importlib
 import inspect
 from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass
 from functools import cache, wraps
-from types import ModuleType
-from typing import Any, Callable, Protocol, cast
+from typing import Any, Callable, Protocol
 from unittest import TestCase
 
-from unittest_fixtures.types import (
-    FixtureFunction,
-    Fixtures,
-    FixtureSpec,
-    TestCaseClass,
-)
+from unittest_fixtures.types import FixtureFunction, Fixtures, TestCaseClass
 
 
 # namespace for state variables
 @dataclass(frozen=True, kw_only=True)
 class _State:
-    requirements: dict[TestCaseClass, dict[str, FixtureSpec]]
-    deps: dict[FixtureFunction, dict[str, FixtureSpec]]
+    requirements: dict[TestCaseClass, dict[str, FixtureFunction]]
+    deps: dict[FixtureFunction, dict[str, FixtureFunction]]
     options: dict[TestCaseClass, dict[str, Any]]
     fixtures: dict[TestCase, Fixtures]
-    fixture_path: dict[str, list[ModuleType]]
 
 
-_state = _State(requirements={}, deps={}, options={}, fixtures={}, fixture_path={})
+_state = _State(requirements={}, deps={}, options={}, fixtures={})
 del _State
 
 
@@ -41,9 +33,9 @@ class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-m
 
 
 def given(
-    *requirements: FixtureSpec, **named_requirements: FixtureSpec
+    *requirements: FixtureFunction, **named_requirements: FixtureFunction
 ) -> Callable[[TestCaseClass], TestCaseClass]:
-    """Decorate the TestCase to include the fixtures given by the FixtureSpec"""
+    """Decorate the TestCase to include the fixtures given by the FixtureFunction"""
 
     def decorator(test_case: TestCaseClass) -> TestCaseClass:
         _state.requirements[test_case] = (
@@ -77,9 +69,9 @@ def given(
 
 
 def fixture(
-    *deps: FixtureSpec, **named_deps: FixtureSpec
+    *deps: FixtureFunction, **named_deps: FixtureFunction
 ) -> Callable[[FixtureFunction], FixtureFunction]:
-    """Declare fixture requiring fixtures given by the FixtureSpec"""
+    """Declare fixture requiring fixtures given by the FixtureFunction"""
 
     def decorator(fn: FixtureFunction) -> FixtureFunction:
         _state.deps[fn] = {funcname(dep): dep for dep in deps} | named_deps
@@ -111,21 +103,19 @@ def make_wrapper(method: TestMethodWithFixturesKwarg) -> Callable[[TestCase], An
     return wrapper
 
 
-def add_fixtures(test: TestCase, reqs: dict[str, FixtureSpec]) -> None:
+def add_fixtures(test: TestCase, reqs: dict[str, FixtureFunction]) -> None:
     """Given the TestCase call the fixture functions given by specs and add them to the
     _FIXTURES table
     """
-    test_module = test.__module__
     fixtures = _state.fixtures[test]
-    for name, spec in reqs.items():
-        func = _load_fixture(test_module, spec)
+    for name, func in reqs.items():
         if deps := _state.deps.get(func, {}):
             add_fixtures(test, deps)
         if not hasattr(fixtures, name):
             setattr(fixtures, name, apply_func(func, name, test))
 
 
-def ancestor_requirements(test_case: TestCaseClass) -> dict[str, FixtureSpec]:
+def ancestor_requirements(test_case: TestCaseClass) -> dict[str, FixtureFunction]:
     """Gather the requirements of the test_case's ancestors"""
     reqs = {}
     for ancestor in reversed(test_case.mro()):
@@ -153,43 +143,10 @@ def apply_func(func: FixtureFunction, name: str, test: TestCase) -> Any:
     return func(fixtures, **opts)
 
 
-def load(*fixture_modules: str) -> None:
-    """Load the given fixture modules for the caller's module"""
-    if caller := inspect.stack()[1][0].f_globals.get("__name__"):
-        for fixture_module in fixture_modules:
-            module = importlib.import_module(fixture_module)
-            _state.fixture_path.setdefault(caller, []).append(module)
-    else:  # pragma: no cover
-        raise RuntimeError("Cannot resolve caller's module")
-
-
-def _load_fixture(test_module: str, spec: FixtureSpec) -> FixtureFunction:
-    """Load and return the FixtureFunction given by FixtureSpec
-
-    If spec is a string, the function is imported from the project's settings, which
-    defaults to "tests.fixtures".  Otherwise the given spec is returned.
-    """
-    if not isinstance(spec, str):
-        return spec
-
-    fixtures_modules = _state.fixture_path[test_module]
-
-    for fixtures_module in fixtures_modules:
-        try:
-            return cast(FixtureFunction, getattr(fixtures_module, spec))
-        except AttributeError:
-            continue
-
-    raise LookupError(spec)
-
-
 @cache
-def funcname(spec: FixtureSpec) -> str:
+def funcname(fixture_function: FixtureFunction) -> str:
     """Return the fixture name of the given function"""
-    if isinstance(spec, str):
-        return spec
-
-    func_name = spec.__name__
+    func_name = fixture_function.__name__
 
     return func_name.removesuffix("_fixture")
 

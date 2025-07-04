@@ -7,5 +7,4 @@ from unittest import TestCase
 Fixtures: TypeAlias = SimpleNamespace
 FixtureContext: TypeAlias = Iterator
 FixtureFunction: TypeAlias = Callable[[Fixtures], Any]
-FixtureSpec: TypeAlias = str | FixtureFunction
 TestCaseClass: TypeAlias = type[TestCase]

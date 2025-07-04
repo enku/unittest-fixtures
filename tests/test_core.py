@@ -1,12 +1,11 @@
 # pylint: disable=missing-docstring,protected-access
 from unittest import TestCase
 
-from unittest_fixtures import FixtureContext, Fixtures, fixture, given, load, where
+from unittest_fixtures import FixtureContext, Fixtures, fixture, given, where
 from unittest_fixtures.fixtures import _state
 
 from . import assert_test_result
-
-load("tests.fixtures")
+from . import fixtures as tf
 
 
 class FixtureTests(TestCase):
@@ -144,7 +143,7 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_inheritance(self) -> None:
-        @given("test_a")
+        @given(tf.test_a)
         class Parent(TestCase):
             pass
 
@@ -257,27 +256,3 @@ class CommonDepsTests(TestCase):
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
-
-
-class LoadTests(TestCase):
-    def setUp(self) -> None:
-        self.orig = _state.fixture_path[__name__].copy()
-        del _state.fixture_path[__name__]
-
-    def tearDown(self) -> None:
-        _state.fixture_path[__name__] = self.orig
-
-    def test(self) -> None:
-        load("tests.other_fixtures")
-
-        @given("other")
-        class MyTestCase(TestCase):
-            def test(self, fixtures: Fixtures) -> None:
-                self.assertEqual("other", fixtures.other)
-
-        result = MyTestCase("test").run()
-        assert_test_result(self, result)
-
-    def test_no_such_module(self) -> None:
-        with self.assertRaises(ModuleNotFoundError):
-            load("tests.bogus")

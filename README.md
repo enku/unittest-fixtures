@@ -14,23 +14,18 @@ one could instead add a decorator?  That's what unittest-fixtures allows one
 to do.
 
 ```python
-from unittest_fixtures import given, load
+from unittest_fixtures import given
 
-# modules that define fixtures are searched in the order they are loaded. This
-is done on a per-module basis.
-load("tests.fixtures.lib1", "tests.fixtures.lib2")
-load("tests.fixtures.lib3")
-
-@given("dog")
+@given(dog)
 class MyTest(TestCase):
     def test_method(self, fixtures):
         dog = fixtures.dog
 ```
 
-In the above example, `"dog"` is a fixture function. Fixture functions are
-passed to the `given` decorator. They can be passed as a string or reference.
-If one is passed as a string, that fixture function is searched for in a the
-modules that are passed to `load()`, in the order given.  standard place.
+In the above example, `dog` is a fixture function. Fixture functions are
+passed to the `given` decorator. When the test method is run, the fixtures are
+"instantiated" and attached to the `fixtures` keyword argument of the test
+method.
 
 
 ## Fixture functions
@@ -50,7 +45,7 @@ Fixture functions are always passed a `Fixtures` argument. Because fixtures
 can depend on other fixtures. For example:
 
 ```python
-@fixture("dog")
+@fixture(dog)
 def person(fixtures):
     p = Person(name="Jane")
     p.pet = fixtures.dog
@@ -72,7 +67,7 @@ Then one's TestCase can use the `where` decorator to passed the parameter:
 ```python
 from unittest_fixtures import given, where
 
-@given("dog")
+@given(dog)
 @where(dog__name="Buddy")
 class MyTest(TestCase):
     def test_method(self, fixtures):
@@ -87,7 +82,7 @@ can be done by passing the fixture as a keyword argument giving different
 names to the same fixture. Different parameters can be passed to them:
 
 ```python
-@given(fido="dog", buddy="dog")
+@given(fido=dog, buddy=dog)
 @where(fido__name="Fido", buddy__name="Buddy")
 class MyTest(TestCase):
     def test_method(self, fixtures):
@@ -101,7 +96,7 @@ have the same name. So in the above example, if we also gave the TestCase the
 a fixture called "dog". However this will work:
 
 ```python
-@given("dog", "person")
+@given(dog, person)
 class MyTest(TestCase):
     def test_method(self, fixtures):
         dog = fixtures.dog
@@ -152,7 +147,7 @@ As stated above, fixtures can depend on other fitures. This is done by
 passed as an argument to the fixture function:
 
 ```python
-@fixture("settings", "tmpdir")
+@fixture(settings, tmpdir)
 def jenkins(fixtures, root=None):
     root = root or fixtures.tmpdir
     settings = replace(fixtures.settings, STORAGE_PATH=root)
@@ -166,7 +161,7 @@ Fixtures can also have named dependencies. So in the above example, if one
 wanted a different `tmpdir` than the "global" one:
 
 ```python
-@fixture("settings", jenkins_root="tmpdir")
+@fixture(settings, jenkins_root=tmpdir)
 def jenkins(fixtures, root=None):
     root = root or fixtures.jenkins_root
     settings = replace(fixtures.settings, STORAGE_PATH=root)
@@ -176,7 +171,7 @@ def jenkins(fixtures, root=None):
 If a TestCase used both `jenkins` and `tmpdir`:
 
 ```python
-@given("tmpdir", "jenkins")
+@given(tmpdir, jenkins)
 class MyTest(TestCase):
    def test_something(self, fixtures):
        self.assertNotEqual(fixtures.jenkins.root, fixtures.tmpdir)

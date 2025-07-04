@@ -2,16 +2,15 @@
 
 from unittest import TestCase
 
-from unittest_fixtures import Fixtures, fixture, given, load
+from unittest_fixtures import Fixtures, fixture, given
 
 from . import assert_test_result
-
-load("tests.fixtures")
+from .fixtures import test_a
 
 
 class LoadFixtureTests(TestCase):
     def test_by_string(self) -> None:
-        @fixture("test_a")
+        @fixture(test_a)
         def f(fixtures: Fixtures) -> str:
             self.assertEqual(fixtures, Fixtures(test_a="test_a"))
             return "fixture"
