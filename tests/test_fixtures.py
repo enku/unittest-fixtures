@@ -9,7 +9,7 @@ from .fixtures import test_a
 
 
 class LoadFixtureTests(TestCase):
-    def test_by_string(self) -> None:
+    def test(self) -> None:
         @fixture(test_a)
         def f(fixtures: Fixtures) -> str:
             self.assertEqual(fixtures, Fixtures(test_a="test_a"))
