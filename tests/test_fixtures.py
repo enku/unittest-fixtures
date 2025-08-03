@@ -3,7 +3,7 @@
 from unittest import TestCase
 
 from unittest_fixtures import Fixtures
-from unittest_fixtures.fixtures import UnittestFixtures
+from unittest_fixtures.fixtures import UnittestFixtures, opts_for_name
 
 from . import assert_test_result
 from .fixtures import test_a
@@ -25,3 +25,30 @@ class LoadFixtureTests(TestCase):
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
+
+
+class OptsForNameTests(TestCase):
+    def test_when_opt_is_name(self) -> None:
+        options = {"name": 1}
+
+        self.assertEqual({"name": 1}, opts_for_name("name", options))
+
+    def test_single_opt(self) -> None:
+        options = {"name__foo": 1}
+
+        self.assertEqual({"foo": 1}, opts_for_name("name", options))
+
+    def test_multi_opt(self) -> None:
+        options = {"name__foo": 1, "name__bar": 2, "name_baz": 3}
+
+        self.assertEqual({"foo": 1, "bar": 2}, opts_for_name("name", options))
+
+    def test_opt_is_name_plus_other(self) -> None:
+        options = {"name": 1, "name__bar": 2}
+
+        self.assertEqual({"name": 1, "bar": 2}, opts_for_name("name", options))
+
+    def test_none(self) -> None:
+        options = {"name__foo": 1, "name__bar": 2, "name_baz": 3}
+
+        self.assertEqual({}, opts_for_name("test", options))
