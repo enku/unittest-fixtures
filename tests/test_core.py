@@ -1,8 +1,8 @@
 # pylint: disable=missing-docstring,protected-access
 from unittest import TestCase
 
-from unittest_fixtures import FixtureContext, Fixtures, fixture, given, where
-from unittest_fixtures.fixtures import _state
+from unittest_fixtures import FixtureContext, Fixtures
+from unittest_fixtures.fixtures import UnittestFixtures
 
 from . import assert_test_result
 from . import fixtures as tf
@@ -10,63 +10,71 @@ from . import fixtures as tf
 
 class FixtureTests(TestCase):
     def test_has_deps(self) -> None:
-        @fixture()
+        uf = UnittestFixtures()
+
+        @uf.fixture()
         def f(_fixtures: Fixtures) -> None:
             return
 
-        self.assertEqual({}, _state.deps[f])
+        self.assertEqual({}, uf.state.deps[f])
 
     def test_unnamed_deps(self) -> None:
-        @fixture()
+        uf = UnittestFixtures()
+
+        @uf.fixture()
         def fixture_a(_fixtures: Fixtures) -> None:
             return
 
-        @fixture()
+        @uf.fixture()
         def fixture_b(_fixtures: Fixtures) -> None:
             return
 
-        @fixture(fixture_a, fixture_b)
+        @uf.fixture(fixture_a, fixture_b)
         def fixture_c(_fixtures: Fixtures) -> None:
             return
 
         expected = {"fixture_a": fixture_a, "fixture_b": fixture_b}
-        self.assertEqual(expected, _state.deps[fixture_c])
+        self.assertEqual(expected, uf.state.deps[fixture_c])
 
     def test_named_deps(self) -> None:
-        @fixture()
+        uf = UnittestFixtures()
+
+        @uf.fixture()
         def fixture_a(_fixtures: Fixtures) -> None:
             return
 
-        @fixture()
+        @uf.fixture()
         def fixture_b(_fixtures: Fixtures) -> None:
             return
 
-        @fixture(a=fixture_a, b=fixture_b)
+        @uf.fixture(a=fixture_a, b=fixture_b)
         def fixture_c(_fixtures: Fixtures) -> None:
             return
 
         expected = {"a": fixture_a, "b": fixture_b}
-        self.assertEqual(expected, _state.deps[fixture_c])
+        self.assertEqual(expected, uf.state.deps[fixture_c])
 
 
 class RequiresTests(TestCase):
+    uf = UnittestFixtures()
+
     @staticmethod
-    @fixture()
+    @uf.fixture()
     def fixture_a(_fixtures: Fixtures) -> str:
         return "a"
 
     @staticmethod
-    @fixture()
+    @uf.fixture()
     def fixture_b(_fixtures: Fixtures) -> str:
         return "b"
 
     @staticmethod
-    @fixture(fixture_a, fixture_b)
+    @uf.fixture(fixture_a, fixture_b)
     def fixture_c(fixtures: Fixtures) -> str:
         return fixtures.fixture_a + fixtures.fixture_b  # type: ignore
 
     def test_unnamed_deps(self) -> None:
-        @given(self.fixture_a)
+        @self.uf.given(self.fixture_a)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual(Fixtures(fixture_a="a"), fixtures)
@@ -75,7 +83,7 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_named_deps(self) -> None:
-        @given(a=self.fixture_a, b=self.fixture_b)
+        @self.uf.given(a=self.fixture_a, b=self.fixture_b)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 expected = Fixtures(a="a", b="b")
@@ -85,7 +93,7 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_fixture_depending_fixture(self) -> None:
-        @given(c=self.fixture_c)
+        @self.uf.given(c=self.fixture_c)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 expected = Fixtures(fixture_a="a", fixture_b="b", c="ab")
@@ -97,7 +105,7 @@ class RequiresTests(TestCase):
     def test_setup(self) -> None:
         ran = False
 
-        @given(self.fixture_a)
+        @self.uf.given(self.fixture_a)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 assert hasattr(fixtures, "fixture_a")
@@ -112,13 +120,13 @@ class RequiresTests(TestCase):
     def test_fixture_generator(self) -> None:
         ran = False
 
-        @fixture()
+        @self.uf.fixture()
         def f(_fixtures: Fixtures) -> FixtureContext[int]:
             nonlocal ran
             yield 6
             ran = True
 
-        @given(f)
+        @self.uf.given(f)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual(6, fixtures.f)
@@ -129,12 +137,12 @@ class RequiresTests(TestCase):
         self.assertTrue(ran)
 
     def test_with_options(self) -> None:
-        @fixture()
+        @self.uf.fixture()
         def echo(_fixtures: Fixtures, echo: str = "") -> str:
             return echo
 
-        @given(echo)
-        @where(echo="Hello World!")
+        @self.uf.given(echo)
+        @self.uf.where(echo="Hello World!")
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual("Hello World!", fixtures.echo)
@@ -143,15 +151,15 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_inheritance(self) -> None:
-        @given(tf.test_a)
+        @self.uf.given(tf.test_a)
         class Parent(TestCase):
             pass
 
-        @fixture()
+        @self.uf.fixture()
         def test_b(_fixtures: Fixtures) -> bool:
             return True
 
-        @given(test_b)
+        @self.uf.given(test_b)
         class Child(Parent):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual(fixtures, Fixtures(test_a="test_a", test_b=True))
@@ -160,16 +168,16 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_inherits_parents_options(self) -> None:
-        @fixture()
+        @self.uf.fixture()
         def echo(_fixtures: Fixtures, echo: str = "") -> str:
             return echo
 
-        @given(echo)
-        @where(echo="Hello World!")
+        @self.uf.given(echo)
+        @self.uf.where(echo="Hello World!")
         class MyBaseTestCase(TestCase):
             pass
 
-        @given(echo)
+        @self.uf.given(echo)
         class MyTestCase(MyBaseTestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual("Hello World!", fixtures.echo)
@@ -178,17 +186,17 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_overrides_parents_options(self) -> None:
-        @fixture()
+        @self.uf.fixture()
         def echo(_fixtures: Fixtures, echo: str = "") -> str:
             return echo
 
-        @given(echo)
-        @where(echo="Hello World!")
+        @self.uf.given(echo)
+        @self.uf.where(echo="Hello World!")
         class MyBaseTestCase(TestCase):
             pass
 
-        @given(echo)
-        @where(echo="override!")
+        @self.uf.given(echo)
+        @self.uf.where(echo="override!")
         class MyTestCase(MyBaseTestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual("override!", fixtures.echo)
@@ -197,16 +205,16 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_stacked_given_decorators(self) -> None:
-        @fixture()
+        @self.uf.fixture()
         def a(_fixtures: Fixtures) -> None:
             return
 
-        @fixture()
+        @self.uf.fixture()
         def b(_fixtures: Fixtures) -> None:
             return
 
-        @given(a)
-        @given(b)
+        @self.uf.given(a)
+        @self.uf.given(b)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertTrue(hasattr(fixtures, "a"))
@@ -216,14 +224,14 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
 
     def test_options_to_deps_passed_as_kwargs(self) -> None:
-        @fixture()
+        @self.uf.fixture()
         def echo(
             _fixtures: Fixtures, echo: str = "Hello world", punc: str = "!"
         ) -> str:
             return f"{echo}{punc}"
 
-        @given(echo)
-        @where(echo="test", echo__punc="!!!")
+        @self.uf.given(echo)
+        @self.uf.where(echo="test", echo__punc="!!!")
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual("test!!!", fixtures.echo)
@@ -233,23 +241,25 @@ class RequiresTests(TestCase):
 
 
 class CommonDepsTests(TestCase):
+    uf = UnittestFixtures()
+
     @staticmethod
-    @fixture()
+    @uf.fixture()
     def fixture_a(_fixtures: Fixtures) -> str:
         return "a"
 
     @staticmethod
-    @fixture(fixture_a)
+    @uf.fixture(fixture_a)
     def fixture_b(_fixtures: Fixtures) -> str:
         return "b"
 
     @staticmethod
-    @fixture(fixture_a)
+    @uf.fixture(fixture_a)
     def fixture_c(_fixtures: Fixtures) -> str:
         return "c"
 
     def test(self) -> None:
-        @given(c=self.fixture_c, b=self.fixture_b, z=self.fixture_c)
+        @self.uf.given(c=self.fixture_c, b=self.fixture_b, z=self.fixture_c)
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual(Fixtures(fixture_a="a", b="b", c="c", z="c"), fixtures)

@@ -1,6 +1,6 @@
 """Fixtures framework"""
 
-from unittest_fixtures.fixtures import fixture, given, where
+from unittest_fixtures.fixtures import UnittestFixtures
 from unittest_fixtures.parametrized import parametrized
 from unittest_fixtures.types import (
     FixtureContext,
@@ -19,3 +19,12 @@ __all__ = (
     "parametrized",
     "where",
 )
+
+
+# UnitestFixtures "singleton". We only expose a few choice methods.
+_uf = UnittestFixtures()
+fixture = _uf.fixture
+given = _uf.given
+where = _uf.where
+
+del _uf
