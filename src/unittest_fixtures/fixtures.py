@@ -3,22 +3,11 @@
 import inspect
 from contextlib import contextmanager
 from copy import copy
-from dataclasses import dataclass
 from functools import cache, wraps
 from typing import Any, Callable, Protocol
 from unittest import TestCase
 
-from unittest_fixtures.types import FixtureFunction, Fixtures, TestCaseClass
-
-
-@dataclass(frozen=True, kw_only=True)
-class State:
-    """namespace for state variables"""
-
-    requirements: dict[TestCaseClass, dict[str, FixtureFunction]]
-    deps: dict[FixtureFunction, dict[str, FixtureFunction]]
-    options: dict[TestCaseClass, dict[str, Any]]
-    fixtures: dict[TestCase, Fixtures]
+from unittest_fixtures.types import FixtureFunction, Fixtures, State, TestCaseClass
 
 
 class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-methods
