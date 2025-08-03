@@ -33,7 +33,7 @@ class UnittestFixtures:
             self.state.requirements[test_class] = (
                 {}
                 | self.ancestor_requirements(test_class)
-                | {funcname(f): f for req in requirements for f in [req]}
+                | {fixture_name(f): f for req in requirements for f in [req]}
                 | named_requirements
             )
 
@@ -67,7 +67,7 @@ class UnittestFixtures:
         """Declare fixture requiring fixtures given by the FixtureFunction"""
 
         def decorator(fn: FixtureFunction) -> FixtureFunction:
-            self.state.deps[fn] = {funcname(dep): dep for dep in deps} | named_deps
+            self.state.deps[fn] = {fixture_name(dep): dep for dep in deps} | named_deps
 
             return fn
 
@@ -138,7 +138,7 @@ class UnittestFixtures:
 
 
 @cache
-def funcname(fixture_function: FixtureFunction) -> str:
+def fixture_name(fixture_function: FixtureFunction) -> str:
     """Return the fixture name of the given function"""
     func_name = fixture_function.__name__
 
