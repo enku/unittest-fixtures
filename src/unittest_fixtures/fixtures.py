@@ -103,9 +103,9 @@ class UnittestFixtures:
             if deps := self.state.deps.get(func, {}):
                 self.add_fixtures(test_case, deps)
             if not hasattr(fixtures, name):
-                setattr(fixtures, name, self.apply_func(func, name, test_case))
+                setattr(fixtures, name, self.apply_func(func, test_case))
 
-    def apply_func(self, func: FixtureFunction, name: str, test_case: TestCase) -> Any:
+    def apply_func(self, func: FixtureFunction, test_case: TestCase) -> Any:
         """Apply the given fixture func to the given test options and return the result
 
         If func is a generator function, apply it and add it to the test's cleanup.
@@ -117,7 +117,7 @@ class UnittestFixtures:
             for test_class in (*reversed(test_class.mro()), test_class)
             for k, v in self.state.options.get(test_class, {}).items()
         }
-        opts = opts_for_name(name, test_opts)
+        opts = opts_for_name(fixture_name(func), test_opts)
 
         if inspect.isgeneratorfunction(func):
             return test_case.enterContext(contextmanager(func)(fixtures, **opts))
