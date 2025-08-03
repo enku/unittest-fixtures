@@ -3,7 +3,7 @@
 from unittest import TestCase
 
 from unittest_fixtures import Fixtures
-from unittest_fixtures.fixtures import UnittestFixtures, opts_for_name
+from unittest_fixtures.fixtures import UnittestFixtures, funcname, opts_for_name
 
 from . import assert_test_result
 from .fixtures import test_a
@@ -25,6 +25,31 @@ class LoadFixtureTests(TestCase):
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
+
+
+class FuncnameTests(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        funcname.cache_clear()
+
+    def test_simple_name(self) -> None:
+        def test() -> None:
+            pass
+
+        self.assertEqual("test", funcname(test))
+
+    def test_underscore_fixture_suffix(self) -> None:
+        def test_fixture() -> None:
+            pass
+
+        self.assertEqual("test", funcname(test_fixture))
+
+    def test_name_is_underscore_fixture(self) -> None:
+        def _fixture() -> None:
+            pass
+
+        self.assertEqual("_fixture", funcname(_fixture))
 
 
 class OptsForNameTests(TestCase):

@@ -142,7 +142,9 @@ def funcname(fixture_function: FixtureFunction) -> str:
     """Return the fixture name of the given function"""
     func_name = fixture_function.__name__
 
-    return func_name.removesuffix("_fixture")
+    if name := func_name.removesuffix("_fixture"):
+        return name
+    return func_name
 
 
 def opts_for_name(name: str, options: dict[str, Any]) -> dict[str, Any]:
