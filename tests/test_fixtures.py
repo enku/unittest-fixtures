@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 
-from unittest_fixtures import Fixtures
+from unittest_fixtures import FixtureContext, Fixtures
 from unittest_fixtures.fixtures import UnittestFixtures, fixture_name, opts_for_name
 
 from . import assert_test_result
@@ -25,6 +25,51 @@ class LoadFixtureTests(TestCase):
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
+
+
+class ApplyFuncTests(TestCase):
+    def test_with_options(self) -> None:
+        uf = UnittestFixtures()
+
+        @uf.fixture()
+        def my_fixture(_: Fixtures, my: int = 6) -> int:
+            return my
+
+        class Tests(TestCase):
+            pass
+
+        t = Tests()
+        uf.state.fixtures[t] = Fixtures()
+        uf.state.options[Tests] = {"my": 7}
+
+        result = uf.apply_func(my_fixture, t)
+
+        self.assertEqual(7, result)
+
+    def test_generator_function(self) -> None:
+        uf = UnittestFixtures()
+        in_context = True
+
+        @uf.fixture()
+        def my_fixture(_: Fixtures) -> FixtureContext[None]:
+            nonlocal in_context
+
+            in_context = True
+            yield
+            in_context = False
+
+        class Tests(TestCase):
+            pass
+
+        t = Tests()
+        uf.state.fixtures[t] = Fixtures()
+
+        uf.apply_func(my_fixture, t)
+
+        self.assertTrue(in_context)
+
+        t.doCleanups()
+        self.assertFalse(in_context)
 
 
 class FixtureNameTests(TestCase):
