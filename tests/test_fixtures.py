@@ -27,6 +27,67 @@ class LoadFixtureTests(TestCase):
         assert_test_result(self, result)
 
 
+class GivenTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        @uf.fixture()
+        def a(_: Fixtures) -> str:
+            return "a"
+
+        @uf.fixture()
+        def b(_: Fixtures) -> str:
+            return "b"
+
+        @uf.fixture(a, d=b)
+        def c(_: Fixtures) -> str:
+            return "c"
+
+        @uf.given(c, g=b)
+        class T(TestCase):
+            def setUp(self) -> None:
+                pass
+
+            def test(self, fixtures: Fixtures) -> None:
+                pass
+
+        self.assertEqual({"c": c, "g": b}, state.requirements[T])
+        self.assertEqual({a: {}, b: {}, c: {"a": a, "d": b}}, state.deps)
+        self.assertTrue(hasattr(T.test, "__unittest_fixtures_wrapped__"))
+
+        t = T()
+        self.assertEqual(t.setUp.__name__, "unittest_fixtures_setup")
+
+        t.setUp()
+        self.assertEqual({t: Fixtures(a="a", d="b", c="c", g="b")}, state.fixtures)
+
+        t.doCleanups()
+        self.assertEqual({}, state.fixtures)
+
+
+class FixtureTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        @uf.fixture()
+        def a(_: Fixtures) -> None:
+            pass
+
+        @uf.fixture()
+        def b(_: Fixtures) -> None:
+            pass
+
+        @uf.fixture(a, d=b)
+        def c(_: Fixtures) -> None:
+            pass
+
+        self.assertEqual({}, state.deps[a])
+        self.assertEqual({}, state.deps[b])
+        self.assertEqual({"a": a, "d": b}, state.deps[c])
+
+
 class WhereTests(TestCase):
     def test(self) -> None:
         uf = UnittestFixtures()
