@@ -27,6 +27,42 @@ class LoadFixtureTests(TestCase):
         assert_test_result(self, result)
 
 
+class AncestorRequirementsTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+
+        class A(TestCase):
+            pass
+
+        @uf.fixture()
+        def a(_: Fixtures) -> None:
+            pass
+
+        uf.state.requirements[A] = {"a": a}
+
+        class B(A):
+            pass
+
+        @uf.fixture()
+        def b(_: Fixtures) -> None:
+            pass
+
+        uf.state.requirements[B] = {"b": b}
+
+        class C(B):
+            pass
+
+        @uf.fixture()
+        def c(_: Fixtures) -> None:
+            pass
+
+        uf.state.requirements[C] = {"c": c}
+
+        reqs = uf.ancestor_requirements(C)
+
+        self.assertEqual({"a": a, "b": b, "c": c}, reqs)
+
+
 class AddFixturesTests(TestCase):
     def test(self) -> None:
         uf = UnittestFixtures()
