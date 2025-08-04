@@ -27,6 +27,67 @@ class LoadFixtureTests(TestCase):
         assert_test_result(self, result)
 
 
+class AddFixturesTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+
+        class Tests(TestCase):
+            pass
+
+        @uf.fixture()
+        def fixture_a(_: Fixtures) -> int:
+            return 6
+
+        test_case = Tests()
+        uf.state.fixtures[test_case] = Fixtures()
+        reqs = {"a": fixture_a}
+        uf.add_fixtures(test_case, reqs)
+
+        self.assertEqual(Fixtures(a=6), uf.state.fixtures[test_case])
+
+    def test_with_deps(self) -> None:
+        uf = UnittestFixtures()
+
+        class Tests(TestCase):
+            pass
+
+        @uf.fixture()
+        def fixture_a(_: Fixtures) -> int:
+            return 6
+
+        @uf.fixture(a=fixture_a)
+        def fixture_b(_: Fixtures) -> int:
+            return 7
+
+        test_case = Tests()
+        uf.state.fixtures[test_case] = Fixtures()
+        reqs = {"b": fixture_b}
+        uf.add_fixtures(test_case, reqs)
+
+        self.assertEqual(Fixtures(b=7, a=6), uf.state.fixtures[test_case])
+
+    def test_already_has_dep(self) -> None:
+        uf = UnittestFixtures()
+
+        class Tests(TestCase):
+            pass
+
+        @uf.fixture()
+        def fixture_a(_: Fixtures) -> int:
+            return 6
+
+        @uf.fixture(a=fixture_a)
+        def fixture_b(_: Fixtures) -> int:
+            return 7
+
+        test_case = Tests()
+        uf.state.fixtures[test_case] = Fixtures(a=5)
+        reqs = {"b": fixture_b}
+        uf.add_fixtures(test_case, reqs)
+
+        self.assertEqual(Fixtures(b=7, a=5), uf.state.fixtures[test_case])
+
+
 class ApplyFuncTests(TestCase):
     def test_with_options(self) -> None:
         uf = UnittestFixtures()
