@@ -242,6 +242,21 @@ class ApplyFuncTests(TestCase):
         self.assertFalse(in_context)
 
 
+class MakeWrapperTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        class T(TestCase):
+            @uf.make_wrapper  # type: ignore
+            def test(self, *, fixtures: Fixtures) -> Fixtures:
+                return fixtures
+
+        t = T()
+        state.fixtures[t] = Fixtures(a=1, b=2, c=3)
+        self.assertEqual(state.fixtures[t], t.test())  # pylint: disable=missing-kwoa
+
+
 class FixtureNameTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
