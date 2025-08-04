@@ -27,6 +27,18 @@ class LoadFixtureTests(TestCase):
         assert_test_result(self, result)
 
 
+class WhereTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        @uf.where(a="a", b="b", c="c")
+        class T(TestCase):
+            pass
+
+        self.assertEqual({"a": "a", "b": "b", "c": "c"}, state.options[T])
+
+
 class AncestorRequirementsTests(TestCase):
     def test(self) -> None:
         uf = UnittestFixtures()
