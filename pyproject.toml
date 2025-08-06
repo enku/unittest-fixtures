@@ -10,6 +10,10 @@ readme = "README.md"
 license = {text = "BSD-3"}
 dynamic = ["version"]
 
+[project.urls]
+homepage = "https://github.com/enku/unittest-fixtures"
+repository = "https://github.com/enku/unittest-fixtures"
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
