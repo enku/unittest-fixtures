@@ -205,6 +205,112 @@ class ParametrizeTests(TestCase):
         self.assertEqual(set(), values)
 ```
 
-## Conclusion
 
-Creating unittest fixtures is clean and fun with unittest-fixtures.
+## Recipes
+
+The following are real-world examples of using unittest-fixtures.
+
+### Random Number Generator
+
+From [larry](https://github.com/enku/larry):
+
+```python
+import random as stdlib_random
+from unittest import mock
+
+from unittest-fixtures import fixture
+
+
+@fixture()
+def random(fixtures, target="larry.color.random", seed=1):
+    _random = stdlib_random.Random(seed)
+    with mock.patch(target, new=_random):
+        yield _random
+```
+
+
+### Temporary Directory
+
+Also from [larry](https://github.com/enku/larry):
+
+```python
+import tempfile
+
+from unittest-fixtures import fixture
+
+
+@fixture()
+def tmpdir(fixtures):
+    with tempfile.TemporaryDirectory() as tempdir:
+        yield tempdir
+```
+
+
+### Mock Environment Variables
+
+From [gbp-webhook-playsound](https://github.com/enku/gbp-webhook-playsound):
+
+```python
+import os
+
+
+@fixture()
+def environ(fixtures, environ=None, clear=True):
+    with mock.patch.dict(os.environ, clear=clear):
+        os.environ.update(environ or {})
+        yield os.environ
+```
+
+### Local Timezone
+
+From [gbpcli](https://github.com/enku/gbpcli):
+
+```python
+import datetime as dt
+from unittest import mock
+
+
+LOCAL_TIMEZONE = dt.timezone(dt.timedelta(days=-1, seconds=61200), "PDT")
+
+
+@fixture()
+def local_timezone(fixtures, local_timezone=LOCAL_TIMEZONE):
+    with mock.patch("gbpcli.render.LOCAL_TIMEZONE", new=local_timezone):
+        yield local_timezone
+```
+
+### Django HttpRequest
+
+From [gbp-feeds](https://github.com/enku/gbp-feeds):
+
+```python
+from django.http import HttpRequest
+
+
+@fixture()
+def request(fixtures, path="/feed.atom", server_name="testserver", server_port=80):
+    request = HttpRequest()
+    request.path = path
+    request.META["SERVER_NAME"] = server_name
+    request.META["SERVER_PORT"] = server_port
+
+    return request
+```
+
+
+### `sys.argv`
+
+From [gbp-webhook](https://github.com/enku/gbp-webhook):
+
+```python
+import mock
+import sys
+
+
+@fixture()
+def argv(fixtures, argv=None):
+    argv = ["gbp", "webhook", "serve"] if argv is None else list(argv)
+
+    with mock.patch.object(sys, "argv", new=argv):
+        yield argv
+```
