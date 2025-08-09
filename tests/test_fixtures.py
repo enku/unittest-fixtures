@@ -1,9 +1,15 @@
 # pylint: disable=missing-docstring
 
-from unittest import TestCase
+import inspect
+from unittest import IsolatedAsyncioTestCase, TestCase
 
 from unittest_fixtures import FixtureContext, Fixtures
-from unittest_fixtures.fixtures import UnittestFixtures, fixture_name, opts_for_name
+from unittest_fixtures.fixtures import (
+    UnittestFixtures,
+    coroutine,
+    fixture_name,
+    opts_for_name,
+)
 
 from . import assert_test_result
 from .fixtures import test_a
@@ -242,7 +248,7 @@ class ApplyFuncTests(TestCase):
         self.assertFalse(in_context)
 
 
-class MakeWrapperTests(TestCase):
+class MakeWrapperTests(IsolatedAsyncioTestCase):
     def test(self) -> None:
         uf = UnittestFixtures()
         state = uf.state
@@ -255,6 +261,21 @@ class MakeWrapperTests(TestCase):
         t = T()
         state.fixtures[t] = Fixtures(a=1, b=2, c=3)
         self.assertEqual(state.fixtures[t], t.test())  # pylint: disable=missing-kwoa
+
+    async def test_coroutine(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        class T(TestCase):
+            @uf.make_wrapper  # type: ignore
+            async def test(self, *, fixtures: Fixtures) -> Fixtures:
+                return fixtures
+
+        t = T()
+        state.fixtures[t] = Fixtures(a=1, b=2, c=3)
+        self.assertEqual(
+            state.fixtures[t], await t.test()  # pylint: disable=missing-kwoa
+        )
 
 
 class FixtureNameTests(TestCase):
@@ -307,3 +328,14 @@ class OptsForNameTests(TestCase):
         options = {"name__foo": 1, "name__bar": 2, "name_baz": 3}
 
         self.assertEqual({}, opts_for_name("test", options))
+
+
+class CoroutineTests(IsolatedAsyncioTestCase):
+    def test(self) -> None:
+        class MyTestCase(TestCase):
+            def test(self) -> None:
+                pass
+
+        method = coroutine(MyTestCase.test)  # type: ignore
+
+        self.assertTrue(inspect.iscoroutinefunction(method))

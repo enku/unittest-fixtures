@@ -134,7 +134,7 @@ class UnittestFixtures:
             return method(test_case, fixtures=self.state.fixtures[test_case])
 
         wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore
-        return wrapper
+        return coroutine(wrapper) if inspect.iscoroutinefunction(method) else wrapper
 
 
 @cache
@@ -155,3 +155,13 @@ def opts_for_name(name: str, options: dict[str, Any]) -> dict[str, Any]:
         for fixture_name, _, fixture_option_name in [key.partition("__")]
         if fixture_name == name
     }
+
+
+def coroutine(method: Callable[[TestCase], Any]) -> Callable[[TestCase], Any]:
+    """Convert the sync method created by make_wrapper into an async method"""
+
+    @wraps(method)
+    async def wrapper(test_case: TestCase) -> Any:
+        return await method(test_case)
+
+    return wrapper

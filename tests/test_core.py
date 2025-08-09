@@ -1,5 +1,5 @@
 # pylint: disable=missing-docstring,protected-access
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase
 
 from unittest_fixtures import FixtureContext, Fixtures, fixture, given, where
 
@@ -257,3 +257,24 @@ class CommonDepsTests(TestCase):
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
+
+
+class AsyncTests(TestCase):
+    def test(self) -> None:
+        test_ran = False
+
+        @fixture()
+        def a(_fixtures: Fixtures) -> str:
+            return "a"
+
+        @given(a)
+        class MyTestCase(IsolatedAsyncioTestCase):
+            async def test(self, fixtures: Fixtures) -> None:
+                nonlocal test_ran
+
+                test_ran = True
+                self.assertEqual(Fixtures(a="a"), fixtures)
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+        self.assertTrue(test_ran)
