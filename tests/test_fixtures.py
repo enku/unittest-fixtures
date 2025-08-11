@@ -277,6 +277,21 @@ class MakeWrapperTests(IsolatedAsyncioTestCase):
             state.fixtures[t], await t.test()  # pylint: disable=missing-kwoa
         )
 
+    def test_with_custom_kwarg(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        class T(TestCase):
+            unittest_fixtures_kwarg = "fx"
+
+            @uf.make_wrapper  # type: ignore
+            def test(self, *, fx: Fixtures) -> Fixtures:
+                return fx
+
+        t = T()
+        state.fixtures[t] = Fixtures(a=1, b=2, c=3)
+        self.assertEqual(state.fixtures[t], t.test())  # pylint: disable=missing-kwoa
+
 
 class FixtureNameTests(TestCase):
     def setUp(self) -> None:

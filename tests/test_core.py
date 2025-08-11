@@ -232,6 +232,17 @@ class RequiresTests(TestCase):
         result = MyTestCase("test").run()
         assert_test_result(self, result)
 
+    def test_custom_kwarg(self) -> None:
+        @given(self.fixture_a)
+        class MyTestCase(TestCase):
+            unittest_fixtures_kwarg = "fx"
+
+            def test(self, fx: Fixtures) -> None:
+                self.assertEqual(Fixtures(fixture_a="a"), fx)
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+
 
 class CommonDepsTests(TestCase):
     @staticmethod

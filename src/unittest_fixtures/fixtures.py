@@ -131,7 +131,9 @@ class UnittestFixtures:
 
         @wraps(method)
         def wrapper(test_case: TestCase) -> Any:
-            return method(test_case, fixtures=self.state.fixtures[test_case])
+            kwarg = getattr(test_case, "unittest_fixtures_kwarg", "fixtures")
+
+            return method(test_case, **{kwarg: self.state.fixtures[test_case]})
 
         wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore
         return coroutine(wrapper) if inspect.iscoroutinefunction(method) else wrapper

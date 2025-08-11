@@ -206,6 +206,22 @@ class ParametrizeTests(TestCase):
 ```
 
 
+## The `fixtures` kwarg may be overriden
+
+The `fixtures` keyword argument is automatically passed to TestCase methods
+when the test is run. The name of the keyword argument can be overriden as
+follows:
+
+```python
+@given(dog)
+class MyTest(TestCase):
+    unittest_fixtures_kwarg = "fx"
+
+    def test_method(self, fx):
+        dog = fx.dog
+```
+
+
 ## Recipes
 
 The following are real-world examples of using unittest-fixtures.
