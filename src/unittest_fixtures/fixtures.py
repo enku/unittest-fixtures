@@ -52,7 +52,7 @@ class UnittestFixtures:
                 self.add_fixtures(test_case, setups)
 
                 if original_setup.__name__ != "unittest_fixtures_setup":
-                    original_setup(self, *args, **kwargs)
+                    original_setup(test_case, *args, **kwargs)
 
                 test_case.addCleanup(lambda: self.state.fixtures.pop(test_case, None))
 

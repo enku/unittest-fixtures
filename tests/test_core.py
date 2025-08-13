@@ -111,6 +111,20 @@ class RequiresTests(TestCase):
         assert_test_result(self, result)
         self.assertTrue(ran)
 
+    def test_original_setup_called(self) -> None:
+        @given(self.fixture_a)
+        class MyTestCase(TestCase):
+            def setUp(self) -> None:
+                self.setup_attribute = True
+
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures.fixture_a, "a")
+                self.assertTrue(self.setup_attribute)
+
+        result = MyTestCase("test").run()
+
+        assert_test_result(self, result)
+
     def test_fixture_generator(self) -> None:
         ran = False
 
