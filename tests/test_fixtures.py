@@ -218,7 +218,7 @@ class ApplyFuncTests(TestCase):
         uf.state.fixtures[t] = Fixtures()
         uf.state.options[Tests] = {"my": 7}
 
-        result = uf.apply_func(my_fixture, t)
+        result = uf.apply_func(my_fixture, "my", t)
 
         self.assertEqual(7, result)
 
@@ -240,7 +240,7 @@ class ApplyFuncTests(TestCase):
         t = Tests()
         uf.state.fixtures[t] = Fixtures()
 
-        uf.apply_func(my_fixture, t)
+        uf.apply_func(my_fixture, "my", t)
 
         self.assertTrue(in_context)
 

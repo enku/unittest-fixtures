@@ -1,4 +1,5 @@
 # pylint: disable=missing-docstring,protected-access
+from dataclasses import dataclass
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 from unittest_fixtures import FixtureContext, Fixtures, fixture, given, where
@@ -139,6 +140,25 @@ class RequiresTests(TestCase):
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual("Hello World!", fixtures.echo)
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+
+    def test_options_with_alternate_names(self) -> None:
+        @dataclass
+        class Player:
+            username: str
+
+        @fixture()
+        def player(_: Fixtures, username: str = "test") -> Player:
+            return Player(username=username)
+
+        @given(player, player2=player)
+        @where(player2__username="player2")
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures.player.username, "test")
+                self.assertEqual(fixtures.player2.username, "player2")
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
