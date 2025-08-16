@@ -1,4 +1,4 @@
-"""Run tests for gbpcli"""
+"""Run tests"""
 
 import argparse
 import unittest
