@@ -330,3 +330,53 @@ def argv(fixtures, argv=None):
     with mock.patch.object(sys, "argv", new=argv):
         yield argv
 ```
+
+
+### `mock.patch`
+
+Instead of applying `mock.patch` and/or `mock.patch.object` decorators to a `TestCase`,
+one can instead use a fixture. This way mocked objects appear as part of the `fixtures`
+test parameter instead of having separate arguments for mocks. The following recipe
+demonstrates how this can be done.
+
+From [gbp-testkit](https://github.com/enku/gentoo-build-publisher/src/gbp_testkit) (a
+component of gentoo-build-publisher):
+
+```python
+NO_OBJECT = object()  # sentinel value
+
+@fixture()
+def patch(_, target="", object=NO_OBJECT, **kwargs):
+    if not target:
+        patcher = None
+        fake = mock.Mock(**kwargs)
+    elif object is _NO_OBJECT:
+        patcher = mock.patch(target, **kwargs)
+        fake = patcher.start()
+    else:
+        patcher = mock.patch.object(object, target, **kwargs)
+        fake = patcher.start()
+
+    yield fake
+
+    if patcher:
+        patcher.stop()
+```
+
+So with this the above `sys.argv` fixture can be replaced with:
+
+```python
+@given(argv=patch)
+@where(argv__object=sys, argv__target="argv", argv__new=["gbp", "webhook", "serve"])
+class MyTest(TestCase)
+    def test_method(self, fixtures):
+         status_code = main()
+
+         self.assertEqual(status_code, 0)
+```
+
+Alternatively, insteady of passing the `sys` object one could also:
+
+```python
+@where(argv__target="sys.argv", argv__new=["gbp", "webhook", "serve"])
+```
