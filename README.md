@@ -206,10 +206,10 @@ class ParametrizeTests(TestCase):
 ```
 
 
-## The `fixtures` kwarg may be overriden
+## The `fixtures` kwarg may be overridden
 
 The `fixtures` keyword argument is automatically passed to TestCase methods
-when the test is run. The name of the keyword argument can be overriden as
+when the test is run. The name of the keyword argument can be overridden as
 follows:
 
 ```python
