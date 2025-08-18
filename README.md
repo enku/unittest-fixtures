@@ -339,8 +339,9 @@ one can instead use a fixture. This way mocked objects appear as part of the `fi
 test parameter instead of having separate arguments for mocks. The following recipe
 demonstrates how this can be done.
 
-From [gbp-testkit](https://github.com/enku/gentoo-build-publisher/src/gbp_testkit) (a
-component of gentoo-build-publisher):
+From
+[gbp-testkit](https://github.com/enku/gentoo-build-publisher/tree/master/src/gbp_testkit)
+(a component of gentoo-build-publisher):
 
 ```python
 NO_OBJECT = object()  # sentinel value
