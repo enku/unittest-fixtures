@@ -38,7 +38,7 @@ class UnittestFixtures:
             )
 
             for name, method in test_class.__dict__.items():
-                if callable(method) and (name == "test" or name.startswith("test")):
+                if callable(method) and name.startswith("test"):
                     if not hasattr(method, "__unittest_fixtures_wrapped__"):
                         setattr(test_class, name, self.make_wrapper(method))
 
