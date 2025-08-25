@@ -3,7 +3,7 @@
 import inspect
 from unittest import IsolatedAsyncioTestCase, TestCase
 
-from unittest_fixtures import FixtureContext, Fixtures
+from unittest_fixtures import FixtureContext, Fixtures, Param
 from unittest_fixtures.fixtures import (
     UnittestFixtures,
     coroutine,
@@ -104,6 +104,27 @@ class WhereTests(TestCase):
             pass
 
         self.assertEqual({"a": "a", "b": "b", "c": "c"}, state.options[T])
+
+    def test_fixture_depends_on_other_fixture_value(self) -> None:
+        uf = UnittestFixtures()
+
+        @uf.fixture()
+        def a(_: Fixtures, a: str = "a") -> str:
+            return a
+
+        @uf.fixture()
+        def b(_: Fixtures, b: str = "b") -> str:
+            return b
+
+        @uf.given(a, b)
+        @uf.where(a="b", b=Param(lambda fixtures: fixtures.a + "b"))
+        class T(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures.a, "b")
+                self.assertEqual(fixtures.b, "bb")
+
+        result = T("test").run()
+        assert_test_result(self, result)
 
 
 class AncestorRequirementsTests(TestCase):

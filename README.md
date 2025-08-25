@@ -120,6 +120,28 @@ class MyTest(TestCase):
     ...
 ```
 
+There are times when one may desire to pass a fixture parameter that uses the
+value of another fixture, however that value does not get calculated until
+each test is run. The `Param` type allows one to accomplish this:
+
+```python
+from unittest_fixtures import Param, given, where
+
+
+@given(person)
+@where(person__name=Param(lambda fixtures: fixtures.name))
+@given(name=random_choice)
+@where(name__choices=["Liam", "Noah", "Jack", "Oliver"])
+class MyTest(TestCase):
+    ...
+```
+
+> [!NOTE]
+> In the above example, fixture ordering is important. Given that `person`
+> *implicitly* depends on `name`, the `name` fixture needs to be set up first.
+> We do this by declaring it before (lower vertically in the list of
+> decorators) than the `person` fixture.
+
 ## Fixtures as context managers
 
 Sometimes a fixture will need a setup and teardown process. If

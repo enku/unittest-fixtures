@@ -1,8 +1,10 @@
 # pylint: disable=missing-docstring,protected-access
+import random
 from dataclasses import dataclass
+from typing import Any, Sequence
 from unittest import IsolatedAsyncioTestCase, TestCase
 
-from unittest_fixtures import FixtureContext, Fixtures, fixture, given, where
+from unittest_fixtures import FixtureContext, Fixtures, Param, fixture, given, where
 
 from . import assert_test_result
 from . import fixtures as tf
@@ -299,6 +301,33 @@ class CommonDepsTests(TestCase):
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
                 self.assertEqual(Fixtures(fixture_a="a", b="b", c="c", z="c"), fixtures)
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+
+
+class ParamTests(TestCase):
+    def test(self) -> None:
+        @dataclass
+        class Person:
+            name: str
+
+        @fixture()
+        def random_choice(_: Fixtures, choices: Sequence[Any] = (1, 2, 3)) -> Any:
+            return random.choice(choices)
+
+        @fixture()
+        def person(_fixtures: Fixtures, name: str = "Steve") -> Person:
+            return Person(name=name)
+
+        @given(person)
+        @where(person__name=Param(lambda fixtures: fixtures.name))
+        @given(name=random_choice)
+        @where(name__choices=["Liam", "Noah", "Jack", "Oliver"])
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures.person.name, fixtures.name)
+                self.assertNotEqual(fixtures.name, "Steve")
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)

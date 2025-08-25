@@ -6,6 +6,7 @@ from unittest_fixtures.types import (
     FixtureContext,
     FixtureFunction,
     Fixtures,
+    Param,
     TestCaseClass,
 )
 
@@ -13,6 +14,7 @@ __all__ = (
     "FixtureContext",
     "FixtureFunction",
     "Fixtures",
+    "Param",
     "TestCaseClass",
     "fixture",
     "given",

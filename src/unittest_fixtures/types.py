@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Callable, Iterator, TypeAlias
+from typing import Any, Callable, Iterator, NamedTuple, TypeAlias
 from unittest import TestCase
 
 
@@ -23,3 +23,9 @@ class State:
     deps: dict[FixtureFunction, dict[str, FixtureFunction]]
     options: dict[TestCaseClass, dict[str, Any]]
     fixtures: dict[TestCase, Fixtures]
+
+
+class Param(NamedTuple):
+    """A parameter to pass to a fixture (in a @where)"""
+
+    func: Callable[[Fixtures], Any]

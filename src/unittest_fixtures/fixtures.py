@@ -7,7 +7,13 @@ from functools import cache, wraps
 from typing import Any, Callable, Protocol
 from unittest import TestCase
 
-from unittest_fixtures.types import FixtureFunction, Fixtures, State, TestCaseClass
+from unittest_fixtures.types import (
+    FixtureFunction,
+    Fixtures,
+    Param,
+    State,
+    TestCaseClass,
+)
 
 
 class TestMethodWithFixturesKwarg(Protocol):  # pylint: disable=too-few-public-methods
@@ -117,7 +123,10 @@ class UnittestFixtures:
             for test_class in (*reversed(test_class.mro()), test_class)
             for k, v in self.state.options.get(test_class, {}).items()
         }
-        opts = opts_for_name(name, test_opts)
+        opts = {
+            k: v.func(fixtures) if isinstance(v, Param) else v
+            for k, v in opts_for_name(name, test_opts).items()
+        }
 
         if inspect.isgeneratorfunction(func):
             return test_case.enterContext(contextmanager(func)(fixtures, **opts))
