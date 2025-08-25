@@ -4,7 +4,7 @@ import inspect
 from contextlib import contextmanager
 from copy import copy
 from functools import cache, wraps
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Iterable, Protocol
 from unittest import TestCase
 
 from unittest_fixtures.types import (
@@ -28,7 +28,7 @@ class UnittestFixtures:
     """Container for TestCases' fixtures"""
 
     def __init__(self) -> None:
-        self.state = State(requirements={}, deps={}, options={}, fixtures={})
+        self.state = State(requirements={}, deps={}, options={}, fixtures={}, params={})
 
     def given(
         self, *requirements: FixtureFunction, **named_requirements: FixtureFunction
@@ -89,6 +89,17 @@ class UnittestFixtures:
 
         return decorator
 
+    def params(
+        self, **kwargs: Iterable[Any]
+    ) -> Callable[[TestCaseClass], TestCaseClass]:
+        """Parametrize the given TestCase"""
+
+        def decorator(test_class: TestCaseClass) -> TestCaseClass:
+            self.state.params.setdefault(self.given()(test_class), {}).update(kwargs)
+            return test_class
+
+        return decorator
+
     def ancestor_requirements(
         self, test_class: TestCaseClass
     ) -> dict[str, FixtureFunction]:
@@ -142,6 +153,15 @@ class UnittestFixtures:
         def wrapper(test_case: TestCase) -> Any:
             kwarg = getattr(test_case, "unittest_fixtures_kwarg", "fixtures")
 
+            if test_case_params := self.state.params.get(type(test_case)):
+                names = test_case_params.keys()
+                fixtures = self.state.fixtures[test_case].__dict__
+
+                for value in zip(*test_case_params.values(), strict=True):
+                    params = dict(zip(names, value, strict=True))
+                    with test_case.subTest(**params):
+                        method(test_case, **{kwarg: Fixtures(**fixtures, **params)})
+                return None
             return method(test_case, **{kwarg: self.state.fixtures[test_case]})
 
         wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore

@@ -127,6 +127,21 @@ class WhereTests(TestCase):
         assert_test_result(self, result)
 
 
+class ParamsTests(TestCase):
+    def test(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+
+        @uf.params(letters=("a", "b", "c"), numbers=("1", "2", "3"))
+        class T(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                pass
+
+        self.assertEqual(
+            state.params[T], {"letters": ("a", "b", "c"), "numbers": ("1", "2", "3")}
+        )
+
+
 class AncestorRequirementsTests(TestCase):
     def test(self) -> None:
         uf = UnittestFixtures()
@@ -312,6 +327,28 @@ class MakeWrapperTests(IsolatedAsyncioTestCase):
         t = T()
         state.fixtures[t] = Fixtures(a=1, b=2, c=3)
         self.assertEqual(state.fixtures[t], t.test())  # pylint: disable=missing-kwoa
+
+    def test_with_params(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+        runs = 0
+
+        class T(TestCase):
+            @uf.make_wrapper  # type: ignore
+            def test(self, *, fixtures: Fixtures) -> None:
+                nonlocal runs
+
+                self.assertEqual(fixtures.a, 1)
+                self.assertEqual(fixtures.number**2, fixtures.square)
+
+                runs += 1
+
+        state.params[T] = {"number": (1, 2, 3), "square": (1, 4, 9)}
+
+        t = T()
+        state.fixtures[t] = Fixtures(a=1)
+        t.test()  # pylint: disable=missing-kwoa
+        self.assertEqual(runs, 3)
 
 
 class FixtureNameTests(TestCase):

@@ -19,6 +19,7 @@ __all__ = (
     "fixture",
     "given",
     "parametrized",
+    "params",
     "where",
 )
 
@@ -27,6 +28,7 @@ __all__ = (
 _uf = UnittestFixtures()
 fixture = _uf.fixture
 given = _uf.given
+params = _uf.params
 where = _uf.where
 
 del _uf

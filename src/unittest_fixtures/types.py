@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Callable, Iterator, NamedTuple, TypeAlias
+from typing import Any, Callable, Iterable, Iterator, NamedTuple, TypeAlias
 from unittest import TestCase
 
 
@@ -23,6 +23,7 @@ class State:
     deps: dict[FixtureFunction, dict[str, FixtureFunction]]
     options: dict[TestCaseClass, dict[str, Any]]
     fixtures: dict[TestCase, Fixtures]
+    params: dict[TestCaseClass, dict[str, Iterable[Any]]]
 
 
 class Param(NamedTuple):

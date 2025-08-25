@@ -204,27 +204,48 @@ fixtures.  In general one should not use named fixtures unless one wants
 multiple fixtures of the same type.
 
 
+## `@params` (parametrized tests)
+
+Not to be confused with `@parametrized` (below) which works similarly. The `params`
+decorator turns a TestCase's methods into parametrized tests, however, unlike
+`@parametrized`, the parameters are passed into the fixtures argument instead of
+additional arguments to the test method.  For example:
+
+```python
+from unittest_fixtures import params
+
+@params(number=[1, 2, 3], square=[1, 4, 9])
+class MyTest(TestCase):
+    def test(self):
+        self.assertEqual(fixtures.number**2, fixtures.square)
+```
+
+In the above example, the `test` method is called three times. With each iteration the
+`fixtures` parameter has the values:
+
+1. `Fixtures(number=1, square=1)`
+2. `Fixtures(number=2, square=4)`
+3. `Fixtures(number=3, square=9)`
+
+
 ## `@parametrized`
 
-Not so much a fixtures tool, however unittest-fixtures also comes with a
-`@parametrized` decorator that acts as a wrapper for unittest's
+The `@parametrized` decorator that acts as a wrapper for unittest's
 [subtests](https://docs.python.org/3/library/unittest.html#distinguishing-test-iterations-using-subtests).
-A rather contrived example comes from unittest-fixtures own tests:
+Unlike `@params` above, this decorator is to be applied to `TestCase` methods rather
+than tests themselves.  In this case extra parameters are passed to the test method.
+This can be used if you only want to parameterize a specific test method in a `TestCase`
+rather than all test methods.
 
+For example:
 
 ```python
 from unittest_fixtures import parametrized
 
 class ParametrizeTests(TestCase):
-    values = {1, 2}
-
-    @parametrized([[1, values], [2, values], [None, values]])
-    def test(self, value, values):
-        if value is not None:
-            self.assertIn(value, values)
-            values.discard(value)
-            return
-        self.assertEqual(set(), values)
+    @parametrized([[1, 1], [2, 4], [3, 9]])
+    def test(self, number, square):
+        self.assertEqual(number**2, square)
 ```
 
 

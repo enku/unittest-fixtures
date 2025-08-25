@@ -4,7 +4,15 @@ from dataclasses import dataclass
 from typing import Any, Sequence
 from unittest import IsolatedAsyncioTestCase, TestCase
 
-from unittest_fixtures import FixtureContext, Fixtures, Param, fixture, given, where
+from unittest_fixtures import (
+    FixtureContext,
+    Fixtures,
+    Param,
+    fixture,
+    given,
+    params,
+    where,
+)
 
 from . import assert_test_result
 from . import fixtures as tf
@@ -352,3 +360,21 @@ class AsyncTests(TestCase):
         result = MyTestCase("test").run()
         assert_test_result(self, result)
         self.assertTrue(test_ran)
+
+
+class ParamsTests(TestCase):
+    def test(self) -> None:
+        runs = 0
+
+        @given(tf.test_a)
+        @params(number=[1, 2, 3], square=[1, 4, 9])
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                nonlocal runs
+                self.assertEqual(fixtures.number**2, fixtures.square)
+                self.assertEqual(fixtures.test_a, "test_a")
+                runs += 1
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+        self.assertEqual(runs, 3)
