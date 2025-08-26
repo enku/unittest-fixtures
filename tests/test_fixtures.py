@@ -364,6 +364,41 @@ class MakeWrapperTests(TestCase):
         assert_test_result(self, result)
         self.assertEqual(test_runs, 3)
 
+    def test_with_combine(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+        combinations = []
+
+        @uf.fixture()
+        def s(_: Fixtures, s: int = 0) -> int:
+            return s
+
+        class T(TestCase):
+            @uf.make_wrapper  # type: ignore
+            def test(self, *, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures.x + fixtures.y, fixtures.sum)
+                combinations.append(fixtures)
+
+        state.requirements[T] = {"sum": s}
+        state.combine[T] = {"x": [1, 2, 3], "y": [1, 2, 3]}
+        state.options[T] = {"sum__s": Param(lambda fixtures: fixtures.y + fixtures.x)}
+
+        t = T("test")
+        result = t.run()
+        assert_test_result(self, result)
+        expected = [
+            Fixtures(x=1, y=1, sum=2),
+            Fixtures(x=1, y=2, sum=3),
+            Fixtures(x=1, y=3, sum=4),
+            Fixtures(x=2, y=1, sum=3),
+            Fixtures(x=2, y=2, sum=4),
+            Fixtures(x=2, y=3, sum=5),
+            Fixtures(x=3, y=1, sum=4),
+            Fixtures(x=3, y=2, sum=5),
+            Fixtures(x=3, y=3, sum=6),
+        ]
+        self.assertEqual(combinations, expected)
+
 
 class FixtureNameTests(TestCase):
     def setUp(self) -> None:
