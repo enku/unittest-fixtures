@@ -47,22 +47,6 @@ class UnittestFixtures:
                 if callable(method) and name.startswith("test"):
                     if not hasattr(method, "__unittest_fixtures_wrapped__"):
                         setattr(test_class, name, self.make_wrapper(method))
-
-            original_setup = getattr(test_class, "setUp", lambda *args, **kwargs: None)
-
-            def unittest_fixtures_setup(
-                test_case: TestCase, *args: Any, **kwargs: Any
-            ) -> None:
-                self.state.fixtures[test_case] = Fixtures()
-                setups = self.state.requirements.get(test_class, {})
-                self.add_fixtures(test_case, setups)
-
-                if original_setup.__name__ != "unittest_fixtures_setup":
-                    original_setup(test_case, *args, **kwargs)
-
-                test_case.addCleanup(lambda: self.state.fixtures.pop(test_case, None))
-
-            setattr(test_class, "setUp", unittest_fixtures_setup)
             return test_class
 
         return decorator
@@ -152,6 +136,12 @@ class UnittestFixtures:
         @wraps(method)
         def wrapper(test_case: TestCase) -> Any:
             kwarg = getattr(test_case, "unittest_fixtures_kwarg", "fixtures")
+            test_class = type(test_case)
+            self.state.fixtures[test_case] = Fixtures()
+            setups = self.state.requirements.get(test_class, {})
+
+            self.add_fixtures(test_case, setups)
+            test_case.addCleanup(lambda: self.state.fixtures.pop(test_case, None))
 
             if test_case_params := self.state.params.get(type(test_case)):
                 names = test_case_params.keys()

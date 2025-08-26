@@ -62,15 +62,6 @@ class GivenTests(TestCase):
         self.assertEqual({a: {}, b: {}, c: {"a": a, "d": b}}, state.deps)
         self.assertTrue(hasattr(T.test, "__unittest_fixtures_wrapped__"))
 
-        t = T()
-        self.assertEqual(t.setUp.__name__, "unittest_fixtures_setup")
-
-        t.setUp()
-        self.assertEqual({t: Fixtures(a="a", d="b", c="c", g="b")}, state.fixtures)
-
-        t.doCleanups()
-        self.assertEqual({}, state.fixtures)
-
 
 class FixtureTests(TestCase):
     def test(self) -> None:
@@ -284,34 +275,37 @@ class ApplyFuncTests(TestCase):
         self.assertFalse(in_context)
 
 
-class MakeWrapperTests(IsolatedAsyncioTestCase):
+class MakeWrapperTests(TestCase):
     def test(self) -> None:
         uf = UnittestFixtures()
         state = uf.state
 
         class T(TestCase):
             @uf.make_wrapper  # type: ignore
-            def test(self, *, fixtures: Fixtures) -> Fixtures:
-                return fixtures
+            def test(self, *, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures, Fixtures(a=1, b=2, c=3))
+                self.assertIn(self, state.fixtures)
 
-        t = T()
-        state.fixtures[t] = Fixtures(a=1, b=2, c=3)
-        self.assertEqual(state.fixtures[t], t.test())  # pylint: disable=missing-kwoa
+        state.requirements[T] = {"a": lambda _: 1, "b": lambda _: 2, "c": lambda _: 3}
+        t = T("test")
+        result = t.run()
+        assert_test_result(self, result)
+        self.assertNotIn(t, state.fixtures)
 
-    async def test_coroutine(self) -> None:
+    def test_coroutine(self) -> None:
         uf = UnittestFixtures()
         state = uf.state
 
-        class T(TestCase):
+        class T(IsolatedAsyncioTestCase):
             @uf.make_wrapper  # type: ignore
-            async def test(self, *, fixtures: Fixtures) -> Fixtures:
-                return fixtures
+            async def test(self, *, fixtures: Fixtures) -> None:
+                self.assertEqual(fixtures, Fixtures(a=1, b=2, c=3))
+                self.assertIn(self, state.fixtures)
 
-        t = T()
-        state.fixtures[t] = Fixtures(a=1, b=2, c=3)
-        self.assertEqual(
-            state.fixtures[t], await t.test()  # pylint: disable=missing-kwoa
-        )
+        state.requirements[T] = {"a": lambda _: 1, "b": lambda _: 2, "c": lambda _: 3}
+        t = T("test")
+        result = t.run()
+        assert_test_result(self, result)
 
     def test_with_custom_kwarg(self) -> None:
         uf = UnittestFixtures()
@@ -321,12 +315,14 @@ class MakeWrapperTests(IsolatedAsyncioTestCase):
             unittest_fixtures_kwarg = "fx"
 
             @uf.make_wrapper  # type: ignore
-            def test(self, *, fx: Fixtures) -> Fixtures:
-                return fx
+            def test(self, *, fx: Fixtures) -> None:
+                self.assertEqual(fx, Fixtures(a=1, b=2, c=3))
+                self.assertIn(self, state.fixtures)
 
-        t = T()
-        state.fixtures[t] = Fixtures(a=1, b=2, c=3)
-        self.assertEqual(state.fixtures[t], t.test())  # pylint: disable=missing-kwoa
+        state.requirements[T] = {"a": lambda _: 1, "b": lambda _: 2, "c": lambda _: 3}
+        t = T("test")
+        result = t.run()
+        assert_test_result(self, result)
 
     def test_with_params(self) -> None:
         uf = UnittestFixtures()
@@ -343,11 +339,12 @@ class MakeWrapperTests(IsolatedAsyncioTestCase):
 
                 runs += 1
 
+        state.requirements[T] = {"a": lambda _: 1}
         state.params[T] = {"number": (1, 2, 3), "square": (1, 4, 9)}
 
-        t = T()
-        state.fixtures[t] = Fixtures(a=1)
-        t.test()  # pylint: disable=missing-kwoa
+        t = T("test")
+        result = t.run()
+        assert_test_result(self, result)
         self.assertEqual(runs, 3)
 
 
