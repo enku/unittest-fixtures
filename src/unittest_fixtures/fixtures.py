@@ -136,7 +136,7 @@ class UnittestFixtures:
             for k, v in self.state.options.get(test_class, {}).items()
         }
         opts = {
-            k: v.func(fixtures) if isinstance(v, Param) else v
+            k: v(fixtures) if isinstance(v, Param) else v
             for k, v in opts_for_name(name, test_opts).items()
         }
 

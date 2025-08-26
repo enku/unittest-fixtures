@@ -34,3 +34,6 @@ class Param(NamedTuple):
     """A parameter to pass to a fixture (in a @where)"""
 
     func: Callable[[Fixtures], Any]
+
+    def __call__(self, fixtures: Fixtures) -> Any:
+        return self.func(fixtures)
