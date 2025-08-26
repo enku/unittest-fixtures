@@ -326,8 +326,8 @@ When run, this test produces output like:
 Fixtures(r=241, g=146, b=42, hex_color='#f1922a')
 ```
 > [!NOTE]
-> Although the fixture functions are anonymous, the fixtures themselves should ge given
-> names. Otherwise the fixture name will be `'<lambda>'`.
+> Although the fixture functions are anonymous, the fixtures themselves should
+> be given names. Otherwise the fixture name will be `'<lambda>'`.
 
 
 ## The `fixtures` kwarg may be overridden
