@@ -137,22 +137,27 @@ class UnittestFixtures:
         def wrapper(test_case: TestCase) -> Any:
             kwarg = getattr(test_case, "unittest_fixtures_kwarg", "fixtures")
             test_class = type(test_case)
-            self.state.fixtures[test_case] = Fixtures()
             setups = self.state.requirements.get(test_class, {})
 
-            self.add_fixtures(test_case, setups)
             test_case.addCleanup(lambda: self.state.fixtures.pop(test_case, None))
 
-            if test_case_params := self.state.params.get(type(test_case)):
-                names = test_case_params.keys()
-                fixtures = self.state.fixtures[test_case].__dict__
-
+            if test_case_params := self.state.params.get(test_class):
                 for value in zip(*test_case_params.values(), strict=True):
-                    params = dict(zip(names, value, strict=True))
+                    fixtures = self.state.fixtures[test_case] = Fixtures()
+                    params = dict(zip(test_case_params, value, strict=True))
+                    setups.update(**params)
+                    vars(fixtures).update(params)
+
                     with test_case.subTest(**params):
-                        method(test_case, **{kwarg: Fixtures(**fixtures, **params)})
+                        self.add_fixtures(test_case, setups)
+                        method(test_case, **{kwarg: fixtures})
+
                 return None
-            return method(test_case, **{kwarg: self.state.fixtures[test_case]})
+
+            fixtures = self.state.fixtures[test_case] = Fixtures()
+            self.add_fixtures(test_case, setups)
+
+            return method(test_case, **{kwarg: fixtures})
 
         wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore
         return coroutine(wrapper) if inspect.iscoroutinefunction(method) else wrapper

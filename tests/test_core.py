@@ -364,17 +364,37 @@ class AsyncTests(TestCase):
 
 class ParamsTests(TestCase):
     def test(self) -> None:
-        runs = 0
+        test_runs = 0
 
         @given(tf.test_a)
         @params(number=[1, 2, 3], square=[1, 4, 9])
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
-                nonlocal runs
+                nonlocal test_runs
                 self.assertEqual(fixtures.number**2, fixtures.square)
                 self.assertEqual(fixtures.test_a, "test_a")
-                runs += 1
+                test_runs += 1
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
-        self.assertEqual(runs, 3)
+        self.assertEqual(test_runs, 3)
+
+    def test_params_passed_to_fixture(self) -> None:
+        test_runs = 0
+
+        @fixture()
+        def a(_: Fixtures, a: Any = "foo") -> Any:
+            return a
+
+        @given(a)
+        @params(value=[1, 2, 3])
+        @where(a=Param(lambda fixtures: fixtures.value + 1))
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                nonlocal test_runs
+                self.assertEqual(fixtures.a, fixtures.value + 1)
+                test_runs += 1
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+        self.assertEqual(test_runs, 3)

@@ -1,6 +1,7 @@
 # pylint: disable=missing-docstring
 
 import inspect
+from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 from unittest_fixtures import FixtureContext, Fixtures, Param
@@ -327,17 +328,17 @@ class MakeWrapperTests(TestCase):
     def test_with_params(self) -> None:
         uf = UnittestFixtures()
         state = uf.state
-        runs = 0
+        test_runs = 0
 
         class T(TestCase):
             @uf.make_wrapper  # type: ignore
             def test(self, *, fixtures: Fixtures) -> None:
-                nonlocal runs
+                nonlocal test_runs
 
                 self.assertEqual(fixtures.a, 1)
                 self.assertEqual(fixtures.number**2, fixtures.square)
 
-                runs += 1
+                test_runs += 1
 
         state.requirements[T] = {"a": lambda _: 1}
         state.params[T] = {"number": (1, 2, 3), "square": (1, 4, 9)}
@@ -345,7 +346,33 @@ class MakeWrapperTests(TestCase):
         t = T("test")
         result = t.run()
         assert_test_result(self, result)
-        self.assertEqual(runs, 3)
+        self.assertEqual(test_runs, 3)
+
+    def test_with_params_and_options_param(self) -> None:
+        uf = UnittestFixtures()
+        state = uf.state
+        test_runs = 0
+
+        @uf.fixture()
+        def a(_: Fixtures, a: Any = "foo") -> Any:
+            return a
+
+        class T(TestCase):
+            @uf.make_wrapper  # type: ignore
+            def test(self, *, fixtures: Fixtures) -> None:
+                nonlocal test_runs
+
+                self.assertEqual(fixtures.a, fixtures.value)
+                test_runs += 1
+
+        state.requirements[T] = {"a": a}
+        state.options[T] = {"a": Param(lambda fixtures: fixtures.value)}
+        state.params[T] = {"value": (1, 2, 3)}
+
+        t = T("test")
+        result = t.run()
+        assert_test_result(self, result)
+        self.assertEqual(test_runs, 3)
 
 
 class FixtureNameTests(TestCase):

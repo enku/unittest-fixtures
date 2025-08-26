@@ -227,6 +227,25 @@ In the above example, the `test` method is called three times. With each iterati
 2. `Fixtures(number=2, square=4)`
 3. `Fixtures(number=3, square=9)`
 
+Using this method, and `Param` above, a parameterized tests can use a test parameter as
+a parameter in a fixture. Consider the example:
+
+```python
+@given(dog)
+@params(name=["Fido", "Spot", "Rex"])
+@where(dog__name=Param(lambda fixtures: f"{fixtures.name} Woofington"))
+class MyTest(TestCase):
+    def test(self, fixtures):
+        print(fixtures.dog.name)
+```
+
+When run this test produces the output:
+
+```
+Fido Woofington
+Spot Woofington
+Rex Woofington
+```
 
 ## `@parametrized`
 
