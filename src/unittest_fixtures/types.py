@@ -1,6 +1,6 @@
 """unittest type definitions"""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator, NamedTuple, TypeAlias
 from unittest import TestCase
@@ -19,11 +19,15 @@ TestCaseClass: TypeAlias = type[TestCase]
 class State:
     """namespace for state variables"""
 
-    requirements: dict[TestCaseClass, dict[str, FixtureFunction]]
-    deps: dict[FixtureFunction, dict[str, FixtureFunction]]
-    options: dict[TestCaseClass, dict[str, Any]]
-    params: dict[TestCaseClass, dict[str, Iterable[Any]]]
-    combine: dict[TestCaseClass, dict[str, Iterable[Any]]]
+    requirements: dict[TestCaseClass, dict[str, FixtureFunction]] = field(
+        default_factory=dict
+    )
+    deps: dict[FixtureFunction, dict[str, FixtureFunction]] = field(
+        default_factory=dict
+    )
+    options: dict[TestCaseClass, dict[str, Any]] = field(default_factory=dict)
+    params: dict[TestCaseClass, dict[str, Iterable[Any]]] = field(default_factory=dict)
+    combine: dict[TestCaseClass, dict[str, Iterable[Any]]] = field(default_factory=dict)
 
 
 class Param(NamedTuple):

@@ -29,7 +29,7 @@ class UnittestFixtures:
     """Container for TestCases' fixtures"""
 
     def __init__(self) -> None:
-        self.state = State(requirements={}, deps={}, options={}, params={}, combine={})
+        self.state = State()
 
     def given(
         self, *requirements: FixtureFunction, **named_requirements: FixtureFunction
