@@ -298,6 +298,38 @@ The `@combine` decorator can also be used in combination with `@params` and, of 
 `@given` fixtures.
 
 
+## Anonymous fixture functions
+
+Sometimes when writing tests there is some value that is computed from zero or more
+given fixures. Often times that's the first thing that's done in the test method. For
+TestCases with multiple test methods this can seem redundant. However the calculation
+can be moved into an an anonymous fixture function (`lambda` expression). Take the
+following for example:
+
+```python
+@given(hex_color=lambda f: f"#{f.r:02x}{f.g:02x}{f.b:02x}")
+@given(b=lambda _: random.randint(0, 2**8 - 1))
+@given(g=lambda _: random.randint(0, 2**8 - 1))
+@given(r=lambda _: random.randint(0, 2**8 - 1))
+class MyTest(TestCase):
+    def test(self, fixtures):
+        print(fixtures)
+```
+
+In this case all the fixtures are provided as `lambda` expressions, with the final one
+(`hex_color`) an implicit dependency of the others, which is the reason it has to be
+declared above the others.
+
+When run, this test produces output like:
+
+```
+Fixtures(r=241, g=146, b=42, hex_color='#f1922a')
+```
+> [!NOTE]
+> Although the fixture functions are anonymous, the fixtures themselves should ge given
+> names. Otherwise the fixture name will be `'<lambda>'`.
+
+
 ## The `fixtures` kwarg may be overridden
 
 The `fixtures` keyword argument is automatically passed to TestCase methods
