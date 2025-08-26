@@ -216,7 +216,7 @@ from unittest_fixtures import params
 
 @params(number=[1, 2, 3], square=[1, 4, 9])
 class MyTest(TestCase):
-    def test(self):
+    def test(self, fixtures):
         self.assertEqual(fixtures.number**2, fixtures.square)
 ```
 
