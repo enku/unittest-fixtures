@@ -28,7 +28,7 @@ class UnittestFixtures:
     """Container for TestCases' fixtures"""
 
     def __init__(self) -> None:
-        self.state = State(requirements={}, deps={}, options={}, fixtures={}, params={})
+        self.state = State(requirements={}, deps={}, options={}, params={})
 
     def given(
         self, *requirements: FixtureFunction, **named_requirements: FixtureFunction
@@ -94,24 +94,29 @@ class UnittestFixtures:
         return reqs
 
     def add_fixtures(
-        self, test_case: TestCase, reqs: dict[str, FixtureFunction]
-    ) -> None:
+        self, test_case: TestCase, reqs: dict[str, FixtureFunction], fixtures: Fixtures
+    ) -> Fixtures:
         """Given the TestCase call the fixture functions given by specs and add them to the
         _FIXTURES table
         """
-        fixtures = self.state.fixtures[test_case]
+        fixtures = copy(fixtures)
         for name, func in reqs.items():
             if deps := self.state.deps.get(func, {}):
-                self.add_fixtures(test_case, deps)
+                fixtures = self.add_fixtures(test_case, deps, fixtures)
             if not hasattr(fixtures, name):
-                setattr(fixtures, name, self.apply_func(func, name, test_case))
+                setattr(
+                    fixtures, name, self.apply_func(func, name, test_case, fixtures)
+                )
+        return fixtures
 
-    def apply_func(self, func: FixtureFunction, name: str, test_case: TestCase) -> Any:
+    def apply_func(
+        self, func: FixtureFunction, name: str, test_case: TestCase, fixtures: Fixtures
+    ) -> Any:
         """Apply the given fixture func to the given test options and return the result
 
         If func is a generator function, apply it and add it to the test's cleanup.
         """
-        fixtures = copy(self.state.fixtures[test_case])
+        fixtures = copy(fixtures)
         test_class = type(test_case)
         test_opts = {
             k: v
@@ -139,23 +144,20 @@ class UnittestFixtures:
             test_class = type(test_case)
             setups = self.state.requirements.get(test_class, {})
 
-            test_case.addCleanup(lambda: self.state.fixtures.pop(test_case, None))
-
             if test_case_params := self.state.params.get(test_class):
                 for value in zip(*test_case_params.values(), strict=True):
-                    fixtures = self.state.fixtures[test_case] = Fixtures()
+                    fixtures = Fixtures()
                     params = dict(zip(test_case_params, value, strict=True))
                     setups.update(**params)
                     vars(fixtures).update(params)
 
                     with test_case.subTest(**params):
-                        self.add_fixtures(test_case, setups)
+                        fixtures = self.add_fixtures(test_case, setups, fixtures)
                         method(test_case, **{kwarg: fixtures})
 
                 return None
 
-            fixtures = self.state.fixtures[test_case] = Fixtures()
-            self.add_fixtures(test_case, setups)
+            fixtures = self.add_fixtures(test_case, setups, Fixtures())
 
             return method(test_case, **{kwarg: fixtures})
 

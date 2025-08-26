@@ -22,7 +22,6 @@ class State:
     requirements: dict[TestCaseClass, dict[str, FixtureFunction]]
     deps: dict[FixtureFunction, dict[str, FixtureFunction]]
     options: dict[TestCaseClass, dict[str, Any]]
-    fixtures: dict[TestCase, Fixtures]
     params: dict[TestCaseClass, dict[str, Iterable[Any]]]
 
 

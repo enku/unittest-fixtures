@@ -182,11 +182,10 @@ class AddFixturesTests(TestCase):
             return 6
 
         test_case = Tests()
-        uf.state.fixtures[test_case] = Fixtures()
         reqs = {"a": fixture_a}
-        uf.add_fixtures(test_case, reqs)
+        fixtures = uf.add_fixtures(test_case, reqs, Fixtures())
 
-        self.assertEqual(Fixtures(a=6), uf.state.fixtures[test_case])
+        self.assertEqual(Fixtures(a=6), fixtures)
 
     def test_with_deps(self) -> None:
         uf = UnittestFixtures()
@@ -203,11 +202,10 @@ class AddFixturesTests(TestCase):
             return 7
 
         test_case = Tests()
-        uf.state.fixtures[test_case] = Fixtures()
         reqs = {"b": fixture_b}
-        uf.add_fixtures(test_case, reqs)
+        fixtures = uf.add_fixtures(test_case, reqs, Fixtures())
 
-        self.assertEqual(Fixtures(b=7, a=6), uf.state.fixtures[test_case])
+        self.assertEqual(Fixtures(b=7, a=6), fixtures)
 
     def test_already_has_dep(self) -> None:
         uf = UnittestFixtures()
@@ -224,11 +222,10 @@ class AddFixturesTests(TestCase):
             return 7
 
         test_case = Tests()
-        uf.state.fixtures[test_case] = Fixtures(a=5)
         reqs = {"b": fixture_b}
-        uf.add_fixtures(test_case, reqs)
+        fixtures = uf.add_fixtures(test_case, reqs, Fixtures(a=5))
 
-        self.assertEqual(Fixtures(b=7, a=5), uf.state.fixtures[test_case])
+        self.assertEqual(Fixtures(b=7, a=5), fixtures)
 
 
 class ApplyFuncTests(TestCase):
@@ -243,10 +240,9 @@ class ApplyFuncTests(TestCase):
             pass
 
         t = Tests()
-        uf.state.fixtures[t] = Fixtures()
         uf.state.options[Tests] = {"my": 7}
 
-        result = uf.apply_func(my_fixture, "my", t)
+        result = uf.apply_func(my_fixture, "my", t, Fixtures())
 
         self.assertEqual(7, result)
 
@@ -266,9 +262,7 @@ class ApplyFuncTests(TestCase):
             pass
 
         t = Tests()
-        uf.state.fixtures[t] = Fixtures()
-
-        uf.apply_func(my_fixture, "my", t)
+        uf.apply_func(my_fixture, "my", t, Fixtures())
 
         self.assertTrue(in_context)
 
@@ -285,13 +279,11 @@ class MakeWrapperTests(TestCase):
             @uf.make_wrapper  # type: ignore
             def test(self, *, fixtures: Fixtures) -> None:
                 self.assertEqual(fixtures, Fixtures(a=1, b=2, c=3))
-                self.assertIn(self, state.fixtures)
 
         state.requirements[T] = {"a": lambda _: 1, "b": lambda _: 2, "c": lambda _: 3}
         t = T("test")
         result = t.run()
         assert_test_result(self, result)
-        self.assertNotIn(t, state.fixtures)
 
     def test_coroutine(self) -> None:
         uf = UnittestFixtures()
@@ -301,7 +293,6 @@ class MakeWrapperTests(TestCase):
             @uf.make_wrapper  # type: ignore
             async def test(self, *, fixtures: Fixtures) -> None:
                 self.assertEqual(fixtures, Fixtures(a=1, b=2, c=3))
-                self.assertIn(self, state.fixtures)
 
         state.requirements[T] = {"a": lambda _: 1, "b": lambda _: 2, "c": lambda _: 3}
         t = T("test")
@@ -318,7 +309,6 @@ class MakeWrapperTests(TestCase):
             @uf.make_wrapper  # type: ignore
             def test(self, *, fx: Fixtures) -> None:
                 self.assertEqual(fx, Fixtures(a=1, b=2, c=3))
-                self.assertIn(self, state.fixtures)
 
         state.requirements[T] = {"a": lambda _: 1, "b": lambda _: 2, "c": lambda _: 3}
         t = T("test")
