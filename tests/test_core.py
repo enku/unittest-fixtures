@@ -365,23 +365,29 @@ class AsyncTests(TestCase):
 
 class ParamsTests(TestCase):
     def test(self) -> None:
-        test_runs = 0
+        combinations: list[Fixtures] = []
 
         @given(tf.test_a)
         @params(number=[1, 2, 3], square=[1, 4, 9])
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
-                nonlocal test_runs
+                combinations.append(fixtures)
                 self.assertEqual(fixtures.number**2, fixtures.square)
                 self.assertEqual(fixtures.test_a, "test_a")
-                test_runs += 1
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
-        self.assertEqual(test_runs, 3)
+        self.assertEqual(
+            combinations,
+            [
+                Fixtures(number=1, square=1, test_a="test_a"),
+                Fixtures(number=2, square=4, test_a="test_a"),
+                Fixtures(number=3, square=9, test_a="test_a"),
+            ],
+        )
 
     def test_params_passed_to_fixture(self) -> None:
-        test_runs = 0
+        combinations: list[Fixtures] = []
 
         @fixture()
         def a(_: Fixtures, a: Any = "foo") -> Any:
@@ -392,39 +398,53 @@ class ParamsTests(TestCase):
         @where(a=Param(lambda fixtures: fixtures.value + 1))
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
-                nonlocal test_runs
+                combinations.append(fixtures)
                 self.assertEqual(fixtures.a, fixtures.value + 1)
-                test_runs += 1
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
-        self.assertEqual(test_runs, 3)
+        self.assertEqual(
+            combinations,
+            [Fixtures(value=1, a=2), Fixtures(value=2, a=3), Fixtures(value=3, a=4)],
+        )
 
 
 class CombineTests(TestCase):
     def test(self) -> None:
-        test_runs = 0
+        combinations: list[Fixtures] = []
 
         @given(tf.test_a)
         @combine(x=[1, 2, 3], y=[1, 2, 3])
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
-                nonlocal test_runs
+                combinations.append(fixtures)
                 self.assertEqual(fixtures.test_a, "test_a")
-                test_runs += 1
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
-        self.assertEqual(test_runs, 9)
+        self.assertEqual(
+            combinations,
+            [
+                Fixtures(x=1, y=1, test_a="test_a"),
+                Fixtures(x=1, y=2, test_a="test_a"),
+                Fixtures(x=1, y=3, test_a="test_a"),
+                Fixtures(x=2, y=1, test_a="test_a"),
+                Fixtures(x=2, y=2, test_a="test_a"),
+                Fixtures(x=2, y=3, test_a="test_a"),
+                Fixtures(x=3, y=1, test_a="test_a"),
+                Fixtures(x=3, y=2, test_a="test_a"),
+                Fixtures(x=3, y=3, test_a="test_a"),
+            ],
+        )
 
     def test_combine_and_params(self) -> None:
-        f_list = []
+        combinations: list[Fixtures] = []
 
         @combine(x=[1, 2, 3], y=[1, 2, 3])
         @params(c=["a", "b", "c"], i=[1, 2, 3])
         class MyTestCase(TestCase):
             def test(self, fixtures: Fixtures) -> None:
-                f_list.append(fixtures)
+                combinations.append(fixtures)
 
         result = MyTestCase("test").run()
         assert_test_result(self, result)
@@ -457,4 +477,4 @@ class CombineTests(TestCase):
             Fixtures(c="c", i=3, x=3, y=2),
             Fixtures(c="c", i=3, x=3, y=3),
         ]
-        self.assertEqual(f_list, expected)
+        self.assertEqual(combinations, expected)

@@ -318,17 +318,14 @@ class MakeWrapperTests(TestCase):
     def test_with_params(self) -> None:
         uf = UnittestFixtures()
         state = uf.state
-        test_runs = 0
+        combinations: list[Fixtures] = []
 
         class T(TestCase):
             @uf.make_wrapper  # type: ignore
             def test(self, *, fixtures: Fixtures) -> None:
-                nonlocal test_runs
-
+                combinations.append(fixtures)
                 self.assertEqual(fixtures.a, 1)
                 self.assertEqual(fixtures.number**2, fixtures.square)
-
-                test_runs += 1
 
         state.requirements[T] = {"a": lambda _: 1}
         state.params[T] = {"number": (1, 2, 3), "square": (1, 4, 9)}
@@ -336,12 +333,19 @@ class MakeWrapperTests(TestCase):
         t = T("test")
         result = t.run()
         assert_test_result(self, result)
-        self.assertEqual(test_runs, 3)
+        self.assertEqual(
+            combinations,
+            [
+                Fixtures(number=1, square=1, a=1),
+                Fixtures(number=2, square=4, a=1),
+                Fixtures(number=3, square=9, a=1),
+            ],
+        )
 
     def test_with_params_and_options_param(self) -> None:
         uf = UnittestFixtures()
         state = uf.state
-        test_runs = 0
+        combinations: list[Fixtures] = []
 
         @uf.fixture()
         def a(_: Fixtures, a: Any = "foo") -> Any:
@@ -350,10 +354,8 @@ class MakeWrapperTests(TestCase):
         class T(TestCase):
             @uf.make_wrapper  # type: ignore
             def test(self, *, fixtures: Fixtures) -> None:
-                nonlocal test_runs
-
+                combinations.append(fixtures)
                 self.assertEqual(fixtures.a, fixtures.value)
-                test_runs += 1
 
         state.requirements[T] = {"a": a}
         state.options[T] = {"a": Param(lambda fixtures: fixtures.value)}
@@ -362,7 +364,10 @@ class MakeWrapperTests(TestCase):
         t = T("test")
         result = t.run()
         assert_test_result(self, result)
-        self.assertEqual(test_runs, 3)
+        self.assertEqual(
+            combinations,
+            [Fixtures(value=1, a=1), Fixtures(value=2, a=2), Fixtures(value=3, a=3)],
+        )
 
     def test_with_combine(self) -> None:
         uf = UnittestFixtures()
