@@ -4,6 +4,7 @@ import inspect
 from contextlib import contextmanager
 from copy import copy
 from functools import cache, wraps
+from itertools import product
 from typing import Any, Callable, Iterable, Protocol
 from unittest import TestCase
 
@@ -28,7 +29,7 @@ class UnittestFixtures:
     """Container for TestCases' fixtures"""
 
     def __init__(self) -> None:
-        self.state = State(requirements={}, deps={}, options={}, params={})
+        self.state = State(requirements={}, deps={}, options={}, params={}, combine={})
 
     def given(
         self, *requirements: FixtureFunction, **named_requirements: FixtureFunction
@@ -80,6 +81,17 @@ class UnittestFixtures:
 
         def decorator(test_class: TestCaseClass) -> TestCaseClass:
             self.state.params.setdefault(self.given()(test_class), {}).update(kwargs)
+            return test_class
+
+        return decorator
+
+    def combine(
+        self, **kwargs: Iterable[Any]
+    ) -> Callable[[TestCaseClass], TestCaseClass]:
+        """Parametrize the given TestCase given the cartesian product of the values"""
+
+        def decorator(test_class: TestCaseClass) -> TestCaseClass:
+            self.state.combine.setdefault(self.given()(test_class), {}).update(kwargs)
             return test_class
 
         return decorator
@@ -144,14 +156,22 @@ class UnittestFixtures:
             test_class = type(test_case)
             setups = self.state.requirements.get(test_class, {})
 
-            if test_case_params := self.state.params.get(test_class):
-                for value in zip(*test_case_params.values(), strict=True):
-                    fixtures = Fixtures()
-                    params = dict(zip(test_case_params, value, strict=True))
-                    setups.update(**params)
-                    vars(fixtures).update(params)
+            test_case_params = self.state.params.get(test_class, {})
+            test_case_combine = self.state.combine.get(test_class, {})
 
-                    with test_case.subTest(**params):
+            if test_case_params or test_case_combine:
+                params_values = [*zip(*test_case_params.values(), strict=True)] or [()]
+                combine_values = [*product(*test_case_combine.values())] or [()]
+
+                for value in product(params_values, combine_values):
+                    fixtures = Fixtures()
+                    params = dict(zip(test_case_params, value[0], strict=True))
+                    combine = dict(zip(test_case_combine, value[1], strict=True))
+                    subs = {**params, **combine}
+                    setups.update(**subs)
+                    vars(fixtures).update(subs)
+
+                    with test_case.subTest(**subs):
                         fixtures = self.add_fixtures(test_case, setups, fixtures)
                         method(test_case, **{kwarg: fixtures})
 

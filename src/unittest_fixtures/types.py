@@ -23,6 +23,7 @@ class State:
     deps: dict[FixtureFunction, dict[str, FixtureFunction]]
     options: dict[TestCaseClass, dict[str, Any]]
     params: dict[TestCaseClass, dict[str, Iterable[Any]]]
+    combine: dict[TestCaseClass, dict[str, Iterable[Any]]]
 
 
 class Param(NamedTuple):

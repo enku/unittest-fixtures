@@ -267,6 +267,36 @@ class ParametrizeTests(TestCase):
         self.assertEqual(number**2, square)
 ```
 
+## `@combine` (parametrized tests using the product of values)
+
+The `combine` decorator turns a TestCase's methods into parametrized tests similar to
+`@params`, however, the parameters are combined as taking a cartesian product of the
+parameters. For example:
+
+```python
+@combine(first=["Spuds", "Rin", "Old"], last=["MacKenzie", "Tin Tin", "Yeller"])
+class MyTest(TestCase):
+    def test(self, fixtures):
+        print(f"{fixtures.first} {fixtures.last}")
+```
+
+When run this test produces the output:
+
+```
+Spuds MacKenzie
+Spuds Tin Tin
+Spuds Yeller
+Rin MacKenzie
+Rin Tin Tin
+Rin Yeller
+Old MacKenzie
+Old Tin Tin
+Old Yeller
+```
+
+The `@combine` decorator can also be used in combination with `@params` and, of course,
+`@given` fixtures.
+
 
 ## The `fixtures` kwarg may be overridden
 

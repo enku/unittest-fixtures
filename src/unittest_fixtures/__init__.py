@@ -16,6 +16,7 @@ __all__ = (
     "Fixtures",
     "Param",
     "TestCaseClass",
+    "combine",
     "fixture",
     "given",
     "parametrized",
@@ -26,6 +27,7 @@ __all__ = (
 
 # UnitestFixtures "singleton". We only expose a few choice methods.
 _uf = UnittestFixtures()
+combine = _uf.combine
 fixture = _uf.fixture
 given = _uf.given
 params = _uf.params

@@ -8,6 +8,7 @@ from unittest_fixtures import (
     FixtureContext,
     Fixtures,
     Param,
+    combine,
     fixture,
     given,
     params,
@@ -398,3 +399,62 @@ class ParamsTests(TestCase):
         result = MyTestCase("test").run()
         assert_test_result(self, result)
         self.assertEqual(test_runs, 3)
+
+
+class CombineTests(TestCase):
+    def test(self) -> None:
+        test_runs = 0
+
+        @given(tf.test_a)
+        @combine(x=[1, 2, 3], y=[1, 2, 3])
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                nonlocal test_runs
+                self.assertEqual(fixtures.test_a, "test_a")
+                test_runs += 1
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+        self.assertEqual(test_runs, 9)
+
+    def test_combine_and_params(self) -> None:
+        f_list = []
+
+        @combine(x=[1, 2, 3], y=[1, 2, 3])
+        @params(c=["a", "b", "c"], i=[1, 2, 3])
+        class MyTestCase(TestCase):
+            def test(self, fixtures: Fixtures) -> None:
+                f_list.append(fixtures)
+
+        result = MyTestCase("test").run()
+        assert_test_result(self, result)
+        expected = [
+            Fixtures(c="a", i=1, x=1, y=1),
+            Fixtures(c="a", i=1, x=1, y=2),
+            Fixtures(c="a", i=1, x=1, y=3),
+            Fixtures(c="a", i=1, x=2, y=1),
+            Fixtures(c="a", i=1, x=2, y=2),
+            Fixtures(c="a", i=1, x=2, y=3),
+            Fixtures(c="a", i=1, x=3, y=1),
+            Fixtures(c="a", i=1, x=3, y=2),
+            Fixtures(c="a", i=1, x=3, y=3),
+            Fixtures(c="b", i=2, x=1, y=1),
+            Fixtures(c="b", i=2, x=1, y=2),
+            Fixtures(c="b", i=2, x=1, y=3),
+            Fixtures(c="b", i=2, x=2, y=1),
+            Fixtures(c="b", i=2, x=2, y=2),
+            Fixtures(c="b", i=2, x=2, y=3),
+            Fixtures(c="b", i=2, x=3, y=1),
+            Fixtures(c="b", i=2, x=3, y=2),
+            Fixtures(c="b", i=2, x=3, y=3),
+            Fixtures(c="c", i=3, x=1, y=1),
+            Fixtures(c="c", i=3, x=1, y=2),
+            Fixtures(c="c", i=3, x=1, y=3),
+            Fixtures(c="c", i=3, x=2, y=1),
+            Fixtures(c="c", i=3, x=2, y=2),
+            Fixtures(c="c", i=3, x=2, y=3),
+            Fixtures(c="c", i=3, x=3, y=1),
+            Fixtures(c="c", i=3, x=3, y=2),
+            Fixtures(c="c", i=3, x=3, y=3),
+        ]
+        self.assertEqual(f_list, expected)
