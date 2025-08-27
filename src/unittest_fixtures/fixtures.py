@@ -4,8 +4,8 @@ import inspect
 from contextlib import contextmanager
 from copy import copy
 from functools import cache, wraps
-from itertools import product
-from typing import Any, Callable, Iterable, Protocol
+from itertools import chain, product
+from typing import Any, Callable, Iterable, Iterator, Protocol
 from unittest import TestCase
 
 from unittest_fixtures.types import (
@@ -155,34 +155,36 @@ class UnittestFixtures:
             kwarg = getattr(test_case, "unittest_fixtures_kwarg", "fixtures")
             test_class = type(test_case)
             setups = self.state.requirements.get(test_class, {})
+            params = self.state.params.get(test_class)
+            combine = self.state.combine.get(test_class)
 
-            test_case_params = self.state.params.get(test_class, {})
-            test_case_combine = self.state.combine.get(test_class, {})
+            for subtest_params in params_for_subtest(params, combine):
+                vars(fixtures := Fixtures()).update(subtest_params)
+                fixtures = self.add_fixtures(test_case, setups, fixtures)
 
-            if test_case_params or test_case_combine:
-                params_values = [*zip(*test_case_params.values(), strict=True)] or [()]
-                combine_values = [*product(*test_case_combine.values())] or [()]
+                if not subtest_params:
+                    return method(test_case, **{kwarg: fixtures})
 
-                for value in product(params_values, combine_values):
-                    fixtures = Fixtures()
-                    params = dict(zip(test_case_params, value[0], strict=True))
-                    combine = dict(zip(test_case_combine, value[1], strict=True))
-                    subs = {**params, **combine}
-                    setups.update(**subs)
-                    vars(fixtures).update(subs)
+                with test_case.subTest(**subtest_params):
+                    method(test_case, **{kwarg: fixtures})
 
-                    with test_case.subTest(**subs):
-                        fixtures = self.add_fixtures(test_case, setups, fixtures)
-                        method(test_case, **{kwarg: fixtures})
-
-                return None
-
-            fixtures = self.add_fixtures(test_case, setups, Fixtures())
-
-            return method(test_case, **{kwarg: fixtures})
+            return None
 
         wrapper.__unittest_fixtures_wrapped__ = method  # type: ignore
         return coroutine(wrapper) if inspect.iscoroutinefunction(method) else wrapper
+
+
+def params_for_subtest(
+    params: dict[str, Any] | None, combine: dict[str, Any] | None
+) -> Iterator[dict[str, Any]]:
+    """docstring"""
+    params = params or {}
+    combine = combine or {}
+    params_values = list(zip(*params.values(), strict=True)) or [()]
+    combine_values = list(product(*combine.values())) or [()]
+
+    for p, c in product(params_values, combine_values):
+        yield dict(chain(zip(params, p, strict=True), zip(combine, c, strict=True)))
 
 
 @cache

@@ -10,6 +10,7 @@ from unittest_fixtures.fixtures import (
     coroutine,
     fixture_name,
     opts_for_name,
+    params_for_subtest,
 )
 
 from . import assert_test_result
@@ -466,3 +467,79 @@ class CoroutineTests(IsolatedAsyncioTestCase):
         method = coroutine(MyTestCase.test)  # type: ignore
 
         self.assertTrue(inspect.iscoroutinefunction(method))
+
+
+class ParamsForSubtestTests(TestCase):
+    def test_params_and_combin_combined(self) -> None:
+        combine = {"x": [1, 2, 3], "y": [1, 2, 3]}
+        params = {"c": ["a", "b", "c"], "i": [1, 2, 3]}
+
+        subtest_params = list(params_for_subtest(params, combine))
+
+        self.assertEqual(
+            subtest_params,
+            [
+                {"c": "a", "i": 1, "x": 1, "y": 1},
+                {"c": "a", "i": 1, "x": 1, "y": 2},
+                {"c": "a", "i": 1, "x": 1, "y": 3},
+                {"c": "a", "i": 1, "x": 2, "y": 1},
+                {"c": "a", "i": 1, "x": 2, "y": 2},
+                {"c": "a", "i": 1, "x": 2, "y": 3},
+                {"c": "a", "i": 1, "x": 3, "y": 1},
+                {"c": "a", "i": 1, "x": 3, "y": 2},
+                {"c": "a", "i": 1, "x": 3, "y": 3},
+                {"c": "b", "i": 2, "x": 1, "y": 1},
+                {"c": "b", "i": 2, "x": 1, "y": 2},
+                {"c": "b", "i": 2, "x": 1, "y": 3},
+                {"c": "b", "i": 2, "x": 2, "y": 1},
+                {"c": "b", "i": 2, "x": 2, "y": 2},
+                {"c": "b", "i": 2, "x": 2, "y": 3},
+                {"c": "b", "i": 2, "x": 3, "y": 1},
+                {"c": "b", "i": 2, "x": 3, "y": 2},
+                {"c": "b", "i": 2, "x": 3, "y": 3},
+                {"c": "c", "i": 3, "x": 1, "y": 1},
+                {"c": "c", "i": 3, "x": 1, "y": 2},
+                {"c": "c", "i": 3, "x": 1, "y": 3},
+                {"c": "c", "i": 3, "x": 2, "y": 1},
+                {"c": "c", "i": 3, "x": 2, "y": 2},
+                {"c": "c", "i": 3, "x": 2, "y": 3},
+                {"c": "c", "i": 3, "x": 3, "y": 1},
+                {"c": "c", "i": 3, "x": 3, "y": 2},
+                {"c": "c", "i": 3, "x": 3, "y": 3},
+            ],
+        )
+
+    def test_only_params(self) -> None:
+        params = {"c": ["a", "b", "c"], "i": [1, 2, 3]}
+
+        subtest_params = list(params_for_subtest(params, None))
+
+        self.assertEqual(
+            subtest_params, [{"c": "a", "i": 1}, {"c": "b", "i": 2}, {"c": "c", "i": 3}]
+        )
+
+    def test_only_combine(self) -> None:
+        combine = {"x": [1, 2, 3], "y": [1, 2, 3]}
+
+        subtest_params = list(params_for_subtest(None, combine))
+
+        self.assertEqual(
+            subtest_params,
+            [
+                {"x": 1, "y": 1},
+                {"x": 1, "y": 2},
+                {"x": 1, "y": 3},
+                {"x": 2, "y": 1},
+                {"x": 2, "y": 2},
+                {"x": 2, "y": 3},
+                {"x": 3, "y": 1},
+                {"x": 3, "y": 2},
+                {"x": 3, "y": 3},
+            ],
+        )
+
+    def test_neither_combine_nor_param(self) -> None:
+        # It shouldn't be called in this case but...
+        subtest_params = list(params_for_subtest(None, None))
+
+        self.assertEqual(subtest_params, [{}])
