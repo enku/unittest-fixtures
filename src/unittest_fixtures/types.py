@@ -1,9 +1,12 @@
 """unittest type definitions"""
 
 from dataclasses import dataclass, field
+from functools import partial
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator, NamedTuple, TypeAlias
 from unittest import TestCase
+
+dict_field = partial(field, default_factory=dict)
 
 
 class Fixtures(SimpleNamespace):  # pylint: disable=too-few-public-methods
@@ -19,15 +22,11 @@ TestCaseClass: TypeAlias = type[TestCase]
 class State:
     """namespace for state variables"""
 
-    requirements: dict[TestCaseClass, dict[str, FixtureFunction]] = field(
-        default_factory=dict
-    )
-    deps: dict[FixtureFunction, dict[str, FixtureFunction]] = field(
-        default_factory=dict
-    )
-    options: dict[TestCaseClass, dict[str, Any]] = field(default_factory=dict)
-    params: dict[TestCaseClass, dict[str, Iterable[Any]]] = field(default_factory=dict)
-    combine: dict[TestCaseClass, dict[str, Iterable[Any]]] = field(default_factory=dict)
+    requirements: dict[TestCaseClass, dict[str, FixtureFunction]] = dict_field()
+    deps: dict[FixtureFunction, dict[str, FixtureFunction]] = dict_field()
+    options: dict[TestCaseClass, dict[str, Any]] = dict_field()
+    params: dict[TestCaseClass, dict[str, Iterable[Any]]] = dict_field()
+    combine: dict[TestCaseClass, dict[str, Iterable[Any]]] = dict_field()
 
 
 class Param(NamedTuple):
