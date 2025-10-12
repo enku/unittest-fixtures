@@ -33,7 +33,7 @@ dev = [
 ]
 
 [tool.mypy]
-files = ["src/unittest_fixtures"]
+files = ["src", "tests"]
 mypy_path = ["tests"]
 strict = true
 
