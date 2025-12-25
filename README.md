@@ -164,7 +164,7 @@ manager fixtures.
 
 ## fixture-depending fixtures
 
-As stated above, fixtures can depend on other fitures. This is done by
+As stated above, fixtures can depend on other fixtures. This is done by
 "declaring" the dependencies in the `fixture` decorator.  Fixtures are then
 passed as an argument to the fixture function:
 
