@@ -62,7 +62,7 @@ class FixtureTests(TestCase):
         self.assertEqual(expected, state.deps[fixture_c])
 
 
-class RequiresTests(TestCase):
+class GivenTests(TestCase):
     @staticmethod
     @fixture()
     def fixture_a(_fixtures: Fixtures) -> str:
